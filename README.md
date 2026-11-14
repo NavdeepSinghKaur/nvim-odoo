@@ -107,4 +107,4 @@ Then `F9` on a line and `F5`.
 
 ## License
 
-MIT
+[The Unlicense](LICENSE) (public domain)
