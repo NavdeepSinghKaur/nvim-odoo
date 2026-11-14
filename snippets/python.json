@@ -1,0 +1,689 @@
+{
+  "Odoo: new model": {
+    "prefix": "omodel",
+    "description": "New model (class with _name, _description, name, company, active)",
+    "body": [
+      "from odoo import _, api, fields, models",
+      "from odoo.exceptions import UserError, ValidationError",
+      "",
+      "",
+      "class ${1:MyThing}(models.Model):",
+      "    _name = \"${2:my.thing}\"",
+      "    _description = \"${3:Thing}\"",
+      "    _inherit = [\"mail.thread\", \"mail.activity.mixin\"]  # chatter + activities (remove if not needed)",
+      "    _order = \"${4:name}\"",
+      "    _check_company_auto = True",
+      "",
+      "    name = fields.Char(string=\"Name\", required=True, tracking=True)",
+      "    active = fields.Boolean(default=True)",
+      "    company_id = fields.Many2one(",
+      "        comodel_name=\"res.company\",",
+      "        string=\"Company\",",
+      "        required=True,",
+      "        default=lambda self: self.env.company,",
+      "        index=True,",
+      "    )",
+      "    $0"
+    ]
+  },
+  "Odoo: extend model": {
+    "prefix": "oinherit",
+    "description": "Extend an existing model (_inherit)",
+    "body": [
+      "from odoo import _, api, fields, models",
+      "",
+      "",
+      "class ${1:SaleOrder}(models.Model):",
+      "    _inherit = \"${2:sale.order}\"",
+      "",
+      "    $0"
+    ]
+  },
+  "Odoo: wizard": {
+    "prefix": "owizard",
+    "description": "Wizard (TransientModel) with a confirm action",
+    "body": [
+      "from odoo import _, api, fields, models",
+      "from odoo.exceptions import UserError",
+      "",
+      "",
+      "class ${1:MyThingWizard}(models.TransientModel):",
+      "    _name = \"${2:my.thing.wizard}\"",
+      "    _description = \"${3:Thing wizard}\"",
+      "",
+      "    ${4:record_ids} = fields.Many2many(",
+      "        comodel_name=\"${5:res.partner}\",",
+      "        string=\"Records\",",
+      "        default=lambda self: self.env.context.get(\"active_ids\"),",
+      "    )",
+      "",
+      "    def action_confirm(self):",
+      "        self.ensure_one()",
+      "        $0",
+      "        return {\"type\": \"ir.actions.act_window_close\"}"
+    ]
+  },
+  "Odoo: abstract model": {
+    "prefix": "oabstract",
+    "description": "AbstractModel (mixin, report)",
+    "body": [
+      "class ${1:MyMixin}(models.AbstractModel):",
+      "    _name = \"${2:my.mixin}\"",
+      "    _description = \"${3:Mixin}\"",
+      "",
+      "    $0"
+    ]
+  },
+  "Odoo field: Char": {
+    "prefix": "ofchar",
+    "description": "fields.Char",
+    "body": [
+      "${1:field_name} = fields.Char(string=\"${2:Name}\"${3:, required=True})",
+      "$0"
+    ]
+  },
+  "Odoo field: Text": {
+    "prefix": "oftext",
+    "description": "fields.Text",
+    "body": [
+      "${1:field_name} = fields.Text(string=\"${2:Notes}\")",
+      "$0"
+    ]
+  },
+  "Odoo field: Html": {
+    "prefix": "ofhtml",
+    "description": "fields.Html",
+    "body": [
+      "${1:field_name} = fields.Html(string=\"${2:Description}\", sanitize=True)",
+      "$0"
+    ]
+  },
+  "Odoo field: Integer": {
+    "prefix": "ofint",
+    "description": "fields.Integer",
+    "body": [
+      "${1:field_name} = fields.Integer(string=\"${2:Quantity}\"${3:, default=0})",
+      "$0"
+    ]
+  },
+  "Odoo field: Float": {
+    "prefix": "offloat",
+    "description": "fields.Float",
+    "body": [
+      "${1:field_name} = fields.Float(string=\"${2:Value}\", digits=\"${3:Product Unit of Measure}\")",
+      "$0"
+    ]
+  },
+  "Odoo field: Monetary (+ currency_id needed)": {
+    "prefix": "ofmonetary",
+    "description": "fields.Monetary (+ currency_id needed)",
+    "body": [
+      "${1:field_name} = fields.Monetary(string=\"${2:Amount}\", currency_field=\"${3:currency_id}\")",
+      "$0"
+    ]
+  },
+  "Odoo field: Boolean": {
+    "prefix": "ofbool",
+    "description": "fields.Boolean",
+    "body": [
+      "${1:field_name} = fields.Boolean(string=\"${2:Active}\"${3:, default=False})",
+      "$0"
+    ]
+  },
+  "Odoo field: Date": {
+    "prefix": "ofdate",
+    "description": "fields.Date",
+    "body": [
+      "${1:field_name} = fields.Date(string=\"${2:Date}\"${3:, default=fields.Date.context_today})",
+      "$0"
+    ]
+  },
+  "Odoo field: Datetime": {
+    "prefix": "ofdatetime",
+    "description": "fields.Datetime",
+    "body": [
+      "${1:field_name} = fields.Datetime(string=\"${2:Date}\"${3:, default=fields.Datetime.now})",
+      "$0"
+    ]
+  },
+  "Odoo field: Binary (file)": {
+    "prefix": "ofbinary",
+    "description": "fields.Binary (file)",
+    "body": [
+      "${1:field_name} = fields.Binary(string=\"${2:File}\", attachment=True)",
+      "$0"
+    ]
+  },
+  "Odoo field: Image": {
+    "prefix": "ofimage",
+    "description": "fields.Image",
+    "body": [
+      "${1:field_name} = fields.Image(string=\"${2:Image}\", max_width=1024, max_height=1024)",
+      "$0"
+    ]
+  },
+  "Odoo field: Selection": {
+    "prefix": "ofsel",
+    "description": "fields.Selection",
+    "body": [
+      "${1:state} = fields.Selection(",
+      "    selection=[",
+      "        (\"${2:draft}\", \"${3:Draft}\"),",
+      "        (\"${4:done}\", \"${5:Done}\"),",
+      "    ],",
+      "    string=\"${6:Status}\",",
+      "    default=\"${2:draft}\",",
+      "    required=True,",
+      "    copy=False,",
+      "    tracking=True,",
+      ")",
+      "$0"
+    ]
+  },
+  "Odoo field: Many2one": {
+    "prefix": "ofm2o",
+    "description": "fields.Many2one (FK to another model)",
+    "body": [
+      "${1:partner_id} = fields.Many2one(",
+      "    comodel_name=\"${2:res.partner}\",",
+      "    string=\"${3:Customer}\",",
+      "    ondelete=\"${4|restrict,cascade,set null|}\",",
+      "    index=True,",
+      ")",
+      "$0"
+    ]
+  },
+  "Odoo field: One2many": {
+    "prefix": "ofo2m",
+    "description": "fields.One2many (lines; needs the Many2one on the other side)",
+    "body": [
+      "${1:line_ids} = fields.One2many(",
+      "    comodel_name=\"${2:my.thing.line}\",",
+      "    inverse_name=\"${3:thing_id}\",",
+      "    string=\"${4:Lines}\",",
+      "    copy=True,",
+      ")",
+      "$0"
+    ]
+  },
+  "Odoo field: Many2many": {
+    "prefix": "ofm2m",
+    "description": "fields.Many2many (tags)",
+    "body": [
+      "${1:tag_ids} = fields.Many2many(",
+      "    comodel_name=\"${2:res.partner.category}\",",
+      "    relation=\"${3:my_thing_tag_rel}\",",
+      "    column1=\"${4:thing_id}\",",
+      "    column2=\"${5:tag_id}\",",
+      "    string=\"${6:Tags}\",",
+      ")",
+      "$0"
+    ]
+  },
+  "Odoo field: related": {
+    "prefix": "ofrelated",
+    "description": "Related field (shows a field of a linked record)",
+    "body": [
+      "${1:partner_phone} = fields.${2:Char}(related=\"${3:partner_id.phone}\", string=\"${4:Phone}\"${5:, readonly=True})",
+      "$0"
+    ]
+  },
+  "Odoo field: company + currency": {
+    "prefix": "ofcompany",
+    "description": "company_id + currency_id (multi-company & Monetary)",
+    "body": [
+      "company_id = fields.Many2one(",
+      "    comodel_name=\"res.company\",",
+      "    string=\"Company\",",
+      "    required=True,",
+      "    default=lambda self: self.env.company,",
+      "    index=True,",
+      ")",
+      "currency_id = fields.Many2one(related=\"company_id.currency_id\", string=\"Currency\")",
+      "$0"
+    ]
+  },
+  "Odoo field: computed": {
+    "prefix": "ocompute",
+    "description": "Computed field + its @api.depends method",
+    "body": [
+      "${1:total} = fields.${2:Float}(string=\"${3:Total}\", compute=\"_compute_${1:total}\", store=${4|True,False|})",
+      "",
+      "@api.depends(\"${5:line_ids.amount}\")",
+      "def _compute_${1:total}(self):",
+      "    for rec in self:",
+      "        rec.${1:total} = ${6:sum(rec.line_ids.mapped(\"amount\"))}",
+      "$0"
+    ]
+  },
+  "Odoo field: computed editable": {
+    "prefix": "ocomputeinv",
+    "description": "Computed + inverse (user can also edit it)",
+    "body": [
+      "${1:name} = fields.${2:Char}(compute=\"_compute_${1:name}\", inverse=\"_inverse_${1:name}\", store=True)",
+      "",
+      "@api.depends(\"${3:partner_id}\")",
+      "def _compute_${1:name}(self):",
+      "    for rec in self:",
+      "        rec.${1:name} = ${4:rec.partner_id.name}",
+      "",
+      "def _inverse_${1:name}(self):",
+      "    for rec in self:",
+      "        $0"
+    ]
+  },
+  "Odoo: @api.onchange": {
+    "prefix": "oonchange",
+    "description": "@api.onchange (form view only, before saving)",
+    "body": [
+      "@api.onchange(\"${1:partner_id}\")",
+      "def _onchange_${1:partner_id}(self):",
+      "    if self.${1:partner_id}:",
+      "        $0"
+    ]
+  },
+  "Odoo: @api.constrains": {
+    "prefix": "oconstrains",
+    "description": "@api.constrains + ValidationError",
+    "body": [
+      "@api.constrains(\"${1:date_start}\", \"${2:date_end}\")",
+      "def _check_${3:dates}(self):",
+      "    for rec in self:",
+      "        if ${4:rec.date_start and rec.date_end and rec.date_start > rec.date_end}:",
+      "            raise ValidationError(_(\"${5:The start date must be before the end date.}\"))",
+      "$0"
+    ]
+  },
+  "Odoo: SQL constraint": {
+    "prefix": "osql",
+    "description": "_sql_constraints (unique etc.)",
+    "body": [
+      "_sql_constraints = [",
+      "    (\"${1:name_company_uniq}\", \"${2:unique(name, company_id)}\", \"${3:The name must be unique per company.}\"),",
+      "]",
+      "$0"
+    ]
+  },
+  "Odoo: override create": {
+    "prefix": "ocreate",
+    "description": "Override create (Odoo 18: model_create_multi, vals_list)",
+    "body": [
+      "@api.model_create_multi",
+      "def create(self, vals_list):",
+      "    for vals in vals_list:",
+      "        if not vals.get(\"name\"):",
+      "            vals[\"name\"] = self.env[\"ir.sequence\"].next_by_code(\"${1:my.thing}\") or _(\"New\")",
+      "    records = super().create(vals_list)",
+      "    $0",
+      "    return records"
+    ]
+  },
+  "Odoo: override write": {
+    "prefix": "owrite",
+    "description": "Override write",
+    "body": [
+      "def write(self, vals):",
+      "    ${1:if \"state\" in vals:",
+      "        pass}",
+      "    res = super().write(vals)",
+      "    $0",
+      "    return res"
+    ]
+  },
+  "Odoo: ondelete check": {
+    "prefix": "ounlink",
+    "description": "Block deletion (@api.ondelete, the Odoo 18 way)",
+    "body": [
+      "@api.ondelete(at_uninstall=False)",
+      "def _unlink_except_${1:done}(self):",
+      "    if any(rec.${2:state} == \"${3:done}\" for rec in self):",
+      "        raise UserError(_(\"${4:You cannot delete a done record.}\"))",
+      "$0"
+    ]
+  },
+  "Odoo: override copy": {
+    "prefix": "ocopy",
+    "description": "Override copy_data (duplicate)",
+    "body": [
+      "def copy_data(self, default=None):",
+      "    vals_list = super().copy_data(default=default)",
+      "    for rec, vals in zip(self, vals_list):",
+      "        vals[\"name\"] = _(\"%s (copy)\", rec.name)",
+      "    return vals_list"
+    ]
+  },
+  "Odoo: default_get": {
+    "prefix": "odefault",
+    "description": "Override default_get (default values from context)",
+    "body": [
+      "@api.model",
+      "def default_get(self, fields_list):",
+      "    res = super().default_get(fields_list)",
+      "    ${1:if \"partner_id\" in fields_list:",
+      "        res[\"partner_id\"] = self.env.context.get(\"default_partner_id\")}",
+      "    return res"
+    ]
+  },
+  "Odoo: display name": {
+    "prefix": "odisplayname",
+    "description": "_compute_display_name (Odoo 17+ replaces name_get)",
+    "body": [
+      "@api.depends(\"${1:name}\", \"${2:partner_id}\")",
+      "def _compute_display_name(self):",
+      "    for rec in self:",
+      "        rec.display_name = f\"{rec.${1:name}} - {rec.${2:partner_id}.name}\"",
+      "$0"
+    ]
+  },
+  "Odoo: search by several fields": {
+    "prefix": "orecsearch",
+    "description": "_rec_names_search (search the Many2one by other fields)",
+    "body": [
+      "_rec_names_search = [\"name\", \"${1:ref}\"]"
+    ]
+  },
+  "Odoo: super() call": {
+    "prefix": "osuper",
+    "description": "Call the parent method",
+    "body": [
+      "res = super().${1:method}(${2})",
+      "$0",
+      "return res"
+    ]
+  },
+  "Odoo: button method": {
+    "prefix": "obuttonmethod",
+    "description": "Method called by a <button type=\"object\">",
+    "body": [
+      "def action_${1:confirm}(self):",
+      "    for rec in self:",
+      "        rec.state = \"${2:done}\"",
+      "    $0"
+    ]
+  },
+  "Odoo: cron method": {
+    "prefix": "ocronmethod",
+    "description": "Method for a scheduled action (ir.cron)",
+    "body": [
+      "@api.model",
+      "def _cron_${1:do_something}(self):",
+      "    records = self.search([${2:(\"state\", \"=\", \"draft\")}])",
+      "    for rec in records:",
+      "        $0"
+    ]
+  },
+  "Odoo ORM: search": {
+    "prefix": "osearch",
+    "description": "self.env[...].search(domain)",
+    "body": [
+      "${1:records} = self.env[\"${2:res.partner}\"].search([(\"${3:field}\", \"${4|=,!=,in,not in,ilike,>,<,>=,<=|}\", ${5:value})]${6:, limit=1})",
+      "$0"
+    ]
+  },
+  "Odoo ORM: search_count": {
+    "prefix": "ocount",
+    "description": "search_count",
+    "body": [
+      "${1:count} = self.env[\"${2:res.partner}\"].search_count([(\"${3:field}\", \"=\", ${4:value})])",
+      "$0"
+    ]
+  },
+  "Odoo ORM: read_group": {
+    "prefix": "oreadgroup",
+    "description": "_read_group (sum / count grouped by)",
+    "body": [
+      "for ${1:partner}, ${2:total} in self.env[\"${3:sale.order}\"]._read_group(",
+      "    domain=[(\"${4:state}\", \"=\", \"${5:sale}\")],",
+      "    groupby=[\"${6:partner_id}\"],",
+      "    aggregates=[\"${7:amount_total:sum}\"],",
+      "):",
+      "    $0"
+    ]
+  },
+  "Odoo ORM: env.ref": {
+    "prefix": "oref",
+    "description": "self.env.ref('module.xml_id')",
+    "body": [
+      "self.env.ref(\"${1:module.xml_id}\")$0"
+    ]
+  },
+  "Odoo ORM: sudo": {
+    "prefix": "osudo",
+    "description": "sudo() (bypass access rights; be careful)",
+    "body": [
+      "self.env[\"${1:res.partner}\"].sudo().${2:search([])}$0"
+    ]
+  },
+  "Odoo ORM: with_context": {
+    "prefix": "ocontext",
+    "description": "with_context(...)",
+    "body": [
+      "${1:self}.with_context(${2:active_test=False})$0"
+    ]
+  },
+  "Odoo ORM: mapped/filtered": {
+    "prefix": "ofiltered",
+    "description": "filtered + mapped",
+    "body": [
+      "${1:self.line_ids}.filtered(lambda l: ${2:l.state == \"done\"}).mapped(\"${3:amount}\")$0"
+    ]
+  },
+  "Odoo: UserError": {
+    "prefix": "oerror",
+    "description": "raise UserError (message to the user)",
+    "body": [
+      "raise UserError(_(\"${1:Something went wrong.}\"))"
+    ]
+  },
+  "Odoo: ValidationError": {
+    "prefix": "ovalerror",
+    "description": "raise ValidationError",
+    "body": [
+      "raise ValidationError(_(\"${1:Invalid value.}\"))"
+    ]
+  },
+  "Odoo: logger": {
+    "prefix": "ologger",
+    "description": "Module logger (logs appear in :Odoo logs)",
+    "body": [
+      "import logging",
+      "",
+      "_logger = logging.getLogger(__name__)"
+    ]
+  },
+  "Odoo: log line": {
+    "prefix": "olog",
+    "description": "_logger.info(...)",
+    "body": [
+      "_logger.${1|info,warning,error,debug|}(\"${2:message %s}\", ${3:value})"
+    ]
+  },
+  "Odoo action: open records": {
+    "prefix": "oactwindow",
+    "description": "return an ir.actions.act_window (open list/form)",
+    "body": [
+      "return {",
+      "    \"type\": \"ir.actions.act_window\",",
+      "    \"name\": _(\"${1:Records}\"),",
+      "    \"res_model\": \"${2:res.partner}\",",
+      "    \"view_mode\": \"${3:list,form}\",",
+      "    \"domain\": [(\"${4:id}\", \"in\", ${5:self.ids})],",
+      "    \"context\": {${6}},",
+      "    \"target\": \"${7|current,new|}\",",
+      "}"
+    ]
+  },
+  "Odoo action: open one record": {
+    "prefix": "oactform",
+    "description": "return an act_window on one record form",
+    "body": [
+      "return {",
+      "    \"type\": \"ir.actions.act_window\",",
+      "    \"res_model\": \"${1:res.partner}\",",
+      "    \"res_id\": ${2:self.partner_id.id},",
+      "    \"view_mode\": \"form\",",
+      "    \"target\": \"current\",",
+      "}"
+    ]
+  },
+  "Odoo action: open wizard": {
+    "prefix": "oactwizard",
+    "description": "Open a wizard in a dialog",
+    "body": [
+      "return {",
+      "    \"type\": \"ir.actions.act_window\",",
+      "    \"name\": _(\"${1:Wizard}\"),",
+      "    \"res_model\": \"${2:my.thing.wizard}\",",
+      "    \"view_mode\": \"form\",",
+      "    \"target\": \"new\",",
+      "    \"context\": {\"active_ids\": self.ids, \"active_model\": self._name},",
+      "}"
+    ]
+  },
+  "Odoo action: notification": {
+    "prefix": "oactnotify",
+    "description": "Toast notification from a button",
+    "body": [
+      "return {",
+      "    \"type\": \"ir.actions.client\",",
+      "    \"tag\": \"display_notification\",",
+      "    \"params\": {",
+      "        \"title\": _(\"${1:Done}\"),",
+      "        \"message\": _(\"${2:The operation was successful.}\"),",
+      "        \"type\": \"${3|success,warning,danger,info|}\",",
+      "        \"sticky\": False,",
+      "        \"next\": {\"type\": \"ir.actions.act_window_close\"},",
+      "    },",
+      "}"
+    ]
+  },
+  "Odoo action: reload": {
+    "prefix": "oactreload",
+    "description": "Reload the page",
+    "body": [
+      "return {\"type\": \"ir.actions.client\", \"tag\": \"reload\"}"
+    ]
+  },
+  "Odoo: controller": {
+    "prefix": "ocontroller",
+    "description": "HTTP controller (route)",
+    "body": [
+      "from odoo import http",
+      "from odoo.http import request",
+      "",
+      "",
+      "class ${1:MyController}(http.Controller):",
+      "",
+      "    @http.route(\"/${2:my_module/thing}\", type=\"${3|json,http|}\", auth=\"${4|user,public,none|}\", methods=[\"${5|POST,GET|}\"])",
+      "    def ${6:thing}(self, **kwargs):",
+      "        $0",
+      "        return {}"
+    ]
+  },
+  "Odoo: test class": {
+    "prefix": "otest",
+    "description": "TransactionCase test file (post_install)",
+    "body": [
+      "from odoo.exceptions import UserError, ValidationError",
+      "from odoo.tests import Form, TransactionCase, tagged",
+      "",
+      "",
+      "@tagged(\"post_install\", \"-at_install\")",
+      "class Test${1:Thing}(TransactionCase):",
+      "",
+      "    @classmethod",
+      "    def setUpClass(cls):",
+      "        super().setUpClass()",
+      "        cls.partner = cls.env[\"res.partner\"].create({\"name\": \"Test partner\"})",
+      "",
+      "    def test_${2:something}(self):",
+      "        $0",
+      "        self.assertEqual(${3:1}, ${4:1})"
+    ]
+  },
+  "Odoo: test method": {
+    "prefix": "otestmethod",
+    "description": "One test method (run it with <Space>oT)",
+    "body": [
+      "def test_${1:something}(self):",
+      "    record = self.env[\"${2:res.partner}\"].create({\"name\": \"Test\"})",
+      "    $0",
+      "    self.assert${3|Equal,True,False,In,RaisesRegex|}(${4})"
+    ]
+  },
+  "Odoo: test assertRaises": {
+    "prefix": "otestraises",
+    "description": "Assert an error is raised",
+    "body": [
+      "with self.assertRaises(${1|UserError,ValidationError,AccessError|}):",
+      "    ${2:record.action_confirm()}"
+    ]
+  },
+  "Odoo: test Form": {
+    "prefix": "otestform",
+    "description": "Simulate the form view (onchanges run)",
+    "body": [
+      "with Form(self.env[\"${1:sale.order}\"]) as f:",
+      "    f.${2:partner_id} = ${3:self.partner}",
+      "    $0",
+      "${4:record} = f.save()"
+    ]
+  },
+  "Odoo: __manifest__": {
+    "prefix": "omanifest",
+    "description": "__manifest__.py for a new module",
+    "body": [
+      "# -*- coding: utf-8 -*-",
+      "{",
+      "    # noqa: B018",
+      "    \"name\": \"${1:My Module}\",",
+      "    \"summary\": \"${2:One line explaining what it does}\",",
+      "    \"version\": \"18.0.1.0.0\",",
+      "    \"license\": \"${9|LGPL-3,AGPL-3,OPL-1|}\",",
+      "    \"category\": \"${3:Services}\",",
+      "    \"author\": \"${4:My Company}\",",
+      "    \"website\": \"${5:https://example.com}\",",
+      "    \"depends\": [",
+      "        \"base\",",
+      "        ${6}",
+      "    ],",
+      "    \"data\": [",
+      "        \"security/ir.model.access.csv\",",
+      "        ${7:\"views/thing_views.xml\",}",
+      "        \"views/menus.xml\",",
+      "    ],",
+      "    \"assets\": {",
+      "        \"web.assets_backend\": [",
+      "            \"${8:module}/static/src/**/*\",",
+      "        ],",
+      "    },",
+      "    \"installable\": True,",
+      "    \"application\": False,",
+      "}"
+    ]
+  },
+  "Odoo: __init__ import": {
+    "prefix": "oimport",
+    "description": "from . import ...",
+    "body": [
+      "from . import ${1:models}"
+    ]
+  },
+  "Odoo: post_init_hook": {
+    "prefix": "ohook",
+    "description": "hooks.py post_init_hook (add \"post_init_hook\": \"post_init_hook\" to manifest)",
+    "body": [
+      "def post_init_hook(env):",
+      "    records = env[\"${1:res.partner}\"].search([])",
+      "    $0"
+    ]
+  },
+  "Odoo: imports": {
+    "prefix": "oimports",
+    "description": "Usual Odoo imports",
+    "body": [
+      "from odoo import _, api, fields, models",
+      "from odoo.exceptions import UserError, ValidationError"
+    ]
+  }
+}

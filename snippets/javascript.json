@@ -1,0 +1,129 @@
+{
+  "OWL: component": {
+    "prefix": "oowl",
+    "description": "OWL component (+ template in the .xml next to it)",
+    "body": [
+      "import { Component, useState, onWillStart } from \"@odoo/owl\";",
+      "import { useService } from \"@web/core/utils/hooks\";",
+      "import { _t } from \"@web/core/l10n/translation\";",
+      "",
+      "export class ${1:MyComponent} extends Component {",
+      "    static template = \"${2:module}.${1:MyComponent}\";",
+      "    static props = {${3}};",
+      "",
+      "    setup() {",
+      "        this.orm = useService(\"orm\");",
+      "        this.notification = useService(\"notification\");",
+      "        this.state = useState({ ${4:records: []} });",
+      "        onWillStart(async () => {",
+      "            $0",
+      "        });",
+      "    }",
+      "}"
+    ]
+  },
+  "OWL: client action": {
+    "prefix": "oowlaction",
+    "description": "Component registered as a client action (ir.actions.client tag)",
+    "body": [
+      "import { Component } from \"@odoo/owl\";",
+      "import { registry } from \"@web/core/registry\";",
+      "",
+      "export class ${1:MyAction} extends Component {",
+      "    static template = \"${2:module}.${1:MyAction}\";",
+      "    static props = [\"*\"];",
+      "",
+      "    setup() {",
+      "        $0",
+      "    }",
+      "}",
+      "",
+      "registry.category(\"actions\").add(\"${3:module.my_action}\", ${1:MyAction});"
+    ]
+  },
+  "OWL: field widget": {
+    "prefix": "oowlfield",
+    "description": "Custom field widget (widget=\"...\" in views)",
+    "body": [
+      "import { Component } from \"@odoo/owl\";",
+      "import { registry } from \"@web/core/registry\";",
+      "import { standardFieldProps } from \"@web/views/fields/standard_field_props\";",
+      "",
+      "export class ${1:MyField} extends Component {",
+      "    static template = \"${2:module}.${1:MyField}\";",
+      "    static props = { ...standardFieldProps };",
+      "",
+      "    get value() {",
+      "        return this.props.record.data[this.props.name];",
+      "    }",
+      "",
+      "    async update(value) {",
+      "        await this.props.record.update({ [this.props.name]: value });",
+      "    }",
+      "}",
+      "",
+      "registry.category(\"fields\").add(\"${3:my_field}\", {",
+      "    component: ${1:MyField},",
+      "    supportedTypes: [\"${4|char,integer,float,many2one,boolean,selection|}\"],",
+      "});"
+    ]
+  },
+  "OWL: patch": {
+    "prefix": "opatch",
+    "description": "Patch an existing component/class (the JS _inherit)",
+    "body": [
+      "import { patch } from \"@web/core/utils/patch\";",
+      "import { ${1:FormController} } from \"${2:@web/views/form/form_controller}\";",
+      "",
+      "patch(${1:FormController}.prototype, {",
+      "    setup() {",
+      "        super.setup(...arguments);",
+      "        $0",
+      "    },",
+      "});"
+    ]
+  },
+  "OWL: orm call": {
+    "prefix": "oorm",
+    "description": "Call a Python method through the orm service",
+    "body": [
+      "const ${1:result} = await this.orm.call(\"${2:res.partner}\", \"${3:method_name}\", [${4:ids}], { ${5} });"
+    ]
+  },
+  "OWL: orm searchRead": {
+    "prefix": "osearchread",
+    "description": "orm.searchRead",
+    "body": [
+      "const ${1:records} = await this.orm.searchRead(\"${2:res.partner}\", [${3:[\"active\", \"=\", true]}], [${4:\"id\", \"name\"}]${5:, { limit: 80 }});"
+    ]
+  },
+  "OWL: notification": {
+    "prefix": "onotify",
+    "description": "Show a toast notification",
+    "body": [
+      "this.notification.add(_t(\"${1:Saved}\"), { type: \"${2|success,warning,danger,info|}\" });"
+    ]
+  },
+  "OWL: do action": {
+    "prefix": "odoaction",
+    "description": "Open an action from JS",
+    "body": [
+      "this.action = useService(\"action\");",
+      "await this.action.doAction({",
+      "    type: \"ir.actions.act_window\",",
+      "    res_model: \"${1:res.partner}\",",
+      "    views: [[false, \"${2|list,form|}\"]],",
+      "    ${3:domain: [],}",
+      "    target: \"${4|current,new|}\",",
+      "});"
+    ]
+  },
+  "OWL: rpc route": {
+    "prefix": "orpc",
+    "description": "Call a controller route (/my/route)",
+    "body": [
+      "import { rpc } from \"@web/core/network/rpc\";",
+      "const ${1:result} = await rpc(\"/${2:my_module/thing}\", { ${3} });"
+    ]
+  }
+}

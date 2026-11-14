@@ -1,0 +1,476 @@
+{
+  "Odoo XML: file": {
+    "prefix": "oodoo",
+    "description": "<odoo> data file",
+    "body": [
+      "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
+      "<odoo>",
+      "    $0",
+      "</odoo>"
+    ]
+  },
+  "Odoo XML: record": {
+    "prefix": "orecord",
+    "description": "<record>",
+    "body": [
+      "<record id=\"${1:xml_id}\" model=\"${2:model.name}\">",
+      "    <field name=\"${3:name}\">${4:value}</field>",
+      "    $0",
+      "</record>"
+    ]
+  },
+  "Odoo view: form": {
+    "prefix": "oform",
+    "description": "Form view (header + statusbar + sheet + notebook + chatter)",
+    "body": [
+      "<record id=\"${1:my_thing}_view_form\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">${2:my.thing}.form</field>",
+      "    <field name=\"model\">${2:my.thing}</field>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <form string=\"${3:Thing}\">",
+      "            <header>",
+      "                <button name=\"action_${4:confirm}\" string=\"${5:Confirm}\" type=\"object\" class=\"btn-primary\" invisible=\"state != 'draft'\"/>",
+      "                <field name=\"state\" widget=\"statusbar\" statusbar_visible=\"draft,done\"/>",
+      "            </header>",
+      "            <sheet>",
+      "                <widget name=\"web_ribbon\" title=\"Archived\" bg_color=\"text-bg-danger\" invisible=\"active\"/>",
+      "                <div class=\"oe_title\">",
+      "                    <h1><field name=\"name\" placeholder=\"${6:Name...}\"/></h1>",
+      "                </div>",
+      "                <group>",
+      "                    <group>",
+      "                        $0",
+      "                    </group>",
+      "                    <group>",
+      "                        <field name=\"company_id\" groups=\"base.group_multi_company\"/>",
+      "                    </group>",
+      "                </group>",
+      "                <notebook>",
+      "                    <page string=\"${7:Lines}\" name=\"${8:lines}\">",
+      "                    </page>",
+      "                </notebook>",
+      "                <field name=\"active\" invisible=\"1\"/>",
+      "            </sheet>",
+      "            <chatter/>",
+      "        </form>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo view: list": {
+    "prefix": "olist",
+    "description": "List view (<list>, Odoo 17+ name for tree)",
+    "body": [
+      "<record id=\"${1:my_thing}_view_list\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">${2:my.thing}.list</field>",
+      "    <field name=\"model\">${2:my.thing}</field>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <list string=\"${3:Things}\"${4: multi_edit=\"1\"}>",
+      "            <field name=\"name\"/>",
+      "            $0",
+      "            <field name=\"company_id\" groups=\"base.group_multi_company\" optional=\"hide\"/>",
+      "        </list>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo view: editable list": {
+    "prefix": "olistedit",
+    "description": "Editable list inside a form (lines)",
+    "body": [
+      "<field name=\"${1:line_ids}\">",
+      "    <list editable=\"bottom\">",
+      "        <field name=\"${2:product_id}\"/>",
+      "        $0",
+      "    </list>",
+      "</field>"
+    ]
+  },
+  "Odoo view: search": {
+    "prefix": "osearch",
+    "description": "Search view (fields, filters, group by)",
+    "body": [
+      "<record id=\"${1:my_thing}_view_search\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">${2:my.thing}.search</field>",
+      "    <field name=\"model\">${2:my.thing}</field>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <search string=\"${3:Search}\">",
+      "            <field name=\"name\"/>",
+      "            $0",
+      "            <filter string=\"Archived\" name=\"inactive\" domain=\"[('active', '=', False)]\"/>",
+      "            <separator/>",
+      "            <group expand=\"0\" string=\"Group By\">",
+      "                <filter string=\"${4:Company}\" name=\"groupby_${5:company}\" context=\"{'group_by': '${6:company_id}'}\"/>",
+      "            </group>",
+      "        </search>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo view: kanban": {
+    "prefix": "okanban",
+    "description": "Kanban view (Odoo 18 card template)",
+    "body": [
+      "<record id=\"${1:my_thing}_view_kanban\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">${2:my.thing}.kanban</field>",
+      "    <field name=\"model\">${2:my.thing}</field>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <kanban>",
+      "            <templates>",
+      "                <t t-name=\"card\">",
+      "                    <field name=\"name\" class=\"fw-bold fs-5\"/>",
+      "                    $0",
+      "                </t>",
+      "            </templates>",
+      "        </kanban>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo view: inherit": {
+    "prefix": "oinheritview",
+    "description": "Extend an existing view (inherit_id + xpath)",
+    "body": [
+      "<record id=\"${1:view_partner_form}_${2:my_module}\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">${3:res.partner}.form.${2:my_module}</field>",
+      "    <field name=\"model\">${3:res.partner}</field>",
+      "    <field name=\"inherit_id\" ref=\"${4:base.view_partner_form}\"/>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <xpath expr=\"//field[@name='${5:vat}']\" position=\"${6|after,before,inside,replace,attributes|}\">",
+      "            $0",
+      "        </xpath>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo view: xpath field": {
+    "prefix": "oxpath",
+    "description": "<xpath> on a field",
+    "body": [
+      "<xpath expr=\"//field[@name='${1:name}']\" position=\"${2|after,before,inside,replace,attributes|}\">",
+      "    $0",
+      "</xpath>"
+    ]
+  },
+  "Odoo view: xpath any": {
+    "prefix": "oxpathany",
+    "description": "<xpath> on any node (page, group, button, div...)",
+    "body": [
+      "<xpath expr=\"//${1|page,group,button,div,notebook,header,sheet|}[@name='${2:name}']\" position=\"${3|after,before,inside,replace,attributes|}\">",
+      "    $0",
+      "</xpath>"
+    ]
+  },
+  "Odoo view: change attribute": {
+    "prefix": "oattr",
+    "description": "Change an attribute of an existing node (position=attributes)",
+    "body": [
+      "<xpath expr=\"//field[@name='${1:name}']\" position=\"attributes\">",
+      "    <attribute name=\"${2|invisible,readonly,required,string,widget,groups,options,domain|}\">${3:True}</attribute>",
+      "</xpath>"
+    ]
+  },
+  "Odoo view: field": {
+    "prefix": "ofield",
+    "description": "<field>",
+    "body": [
+      "<field name=\"${1:name}\" widget=\"${2|many2many_tags,monetary,badge,statusbar,image,html,priority,boolean_toggle,many2one_avatar_user,radio,handle|}\"/>"
+    ]
+  },
+  "Odoo view: field conditional": {
+    "prefix": "ofieldif",
+    "description": "<field> with invisible/readonly/required expressions (Odoo 17+)",
+    "body": [
+      "<field name=\"${1:name}\" invisible=\"${2:state != 'draft'}\" readonly=\"${3:state == 'done'}\" required=\"${4:False}\"/>"
+    ]
+  },
+  "Odoo view: field no create": {
+    "prefix": "ofieldm2o",
+    "description": "Many2one without 'create' / 'open' in the dropdown",
+    "body": [
+      "<field name=\"${1:partner_id}\" options=\"{'no_create': True, 'no_open': True}\" domain=\"[('${2:customer_rank}', '>', 0)]\"/>"
+    ]
+  },
+  "Odoo view: button object": {
+    "prefix": "obutton",
+    "description": "Button that calls a Python method",
+    "body": [
+      "<button name=\"action_${1:confirm}\" string=\"${2:Confirm}\" type=\"object\" class=\"${3|btn-primary,btn-secondary,btn-link|}\"${4: invisible=\"state != 'draft'\"}${5: groups=\"base.group_system\"}/>"
+    ]
+  },
+  "Odoo view: button action": {
+    "prefix": "obuttonaction",
+    "description": "Button that opens an action (xml id)",
+    "body": [
+      "<button name=\"%(${1:module.action_xml_id})d\" string=\"${2:Open}\" type=\"action\" class=\"btn-secondary\"/>"
+    ]
+  },
+  "Odoo view: smart button": {
+    "prefix": "osmartbutton",
+    "description": "Smart button with counter (oe_button_box)",
+    "body": [
+      "<div class=\"oe_button_box\" name=\"button_box\">",
+      "    <button name=\"action_view_${1:orders}\" type=\"object\" class=\"oe_stat_button\" icon=\"${2:fa-shopping-cart}\">",
+      "        <field name=\"${3:order_count}\" widget=\"statinfo\" string=\"${4:Orders}\"/>",
+      "    </button>",
+      "</div>"
+    ]
+  },
+  "Odoo view: group": {
+    "prefix": "ogroup",
+    "description": "<group> 2 columns",
+    "body": [
+      "<group>",
+      "    <group string=\"${1:Info}\">",
+      "        $0",
+      "    </group>",
+      "    <group string=\"${2:Other}\">",
+      "    </group>",
+      "</group>"
+    ]
+  },
+  "Odoo view: notebook page": {
+    "prefix": "opage",
+    "description": "<page> in a notebook",
+    "body": [
+      "<page string=\"${1:Page}\" name=\"${2:page}\">",
+      "    $0",
+      "</page>"
+    ]
+  },
+  "Odoo view: chatter": {
+    "prefix": "ochatter",
+    "description": "Chatter (Odoo 18; model needs mail.thread)",
+    "body": [
+      "<chatter/>"
+    ]
+  },
+  "Odoo: window action": {
+    "prefix": "oaction",
+    "description": "ir.actions.act_window (open list/form of a model)",
+    "body": [
+      "<record id=\"${1:my_thing}_action\" model=\"ir.actions.act_window\">",
+      "    <field name=\"name\">${2:Things}</field>",
+      "    <field name=\"res_model\">${3:my.thing}</field>",
+      "    <field name=\"view_mode\">${4:list,form}</field>",
+      "    <field name=\"context\">{${5}}</field>",
+      "    <field name=\"help\" type=\"html\">",
+      "        <p class=\"o_view_nocontent_smiling_face\">${6:Create your first thing}</p>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo: menu": {
+    "prefix": "omenu",
+    "description": "<menuitem> (put menus in views/menus.xml, loaded last)",
+    "body": [
+      "<menuitem id=\"${1:menu_my_thing}\"",
+      "          name=\"${2:Things}\"",
+      "          parent=\"${3:parent_menu_xml_id}\"",
+      "          action=\"${4:my_thing_action}\"",
+      "          sequence=\"${5:10}\"",
+      "          groups=\"${6:base.group_user}\"/>"
+    ]
+  },
+  "Odoo: root menu": {
+    "prefix": "omenuroot",
+    "description": "Top-level app menu with icon",
+    "body": [
+      "<menuitem id=\"${1:menu_my_thing_root}\"",
+      "          name=\"${2:Things}\"",
+      "          web_icon=\"${3:module},static/description/icon.png\"",
+      "          sequence=\"${4:50}\"",
+      "          groups=\"${5:base.group_user}\"/>"
+    ]
+  },
+  "Odoo: server action": {
+    "prefix": "oserveraction",
+    "description": "ir.actions.server (Python code, e.g. in the Action menu)",
+    "body": [
+      "<record id=\"${1:action_server_thing}\" model=\"ir.actions.server\">",
+      "    <field name=\"name\">${2:Do something}</field>",
+      "    <field name=\"model_id\" ref=\"${3:model_my_thing}\"/>",
+      "    <field name=\"binding_model_id\" ref=\"${3:model_my_thing}\"/>",
+      "    <field name=\"state\">code</field>",
+      "    <field name=\"code\">records.${4:action_confirm()}</field>",
+      "</record>"
+    ]
+  },
+  "Odoo: cron": {
+    "prefix": "ocron",
+    "description": "Scheduled action (ir.cron)",
+    "body": [
+      "<record id=\"${1:ir_cron_thing}\" model=\"ir.cron\">",
+      "    <field name=\"name\">${2:My App: do something}</field>",
+      "    <field name=\"model_id\" ref=\"${3:model_my_thing}\"/>",
+      "    <field name=\"state\">code</field>",
+      "    <field name=\"code\">model._cron_${4:do_something}()</field>",
+      "    <field name=\"interval_number\">${5:1}</field>",
+      "    <field name=\"interval_type\">${6|days,hours,minutes,weeks,months|}</field>",
+      "    <field name=\"active\" eval=\"True\"/>",
+      "</record>"
+    ]
+  },
+  "Odoo: sequence": {
+    "prefix": "osequence",
+    "description": "ir.sequence (numbering like THING/0001)",
+    "body": [
+      "<record id=\"${1:seq_my_thing}\" model=\"ir.sequence\">",
+      "    <field name=\"name\">${2:Thing}</field>",
+      "    <field name=\"code\">${3:my.thing}</field>",
+      "    <field name=\"prefix\">${4:THING/%(year)s/}</field>",
+      "    <field name=\"padding\">${5:4}</field>",
+      "    <field name=\"company_id\" eval=\"False\"/>",
+      "</record>"
+    ]
+  },
+  "Odoo security: group": {
+    "prefix": "osecgroup",
+    "description": "res.groups (user role)",
+    "body": [
+      "<record id=\"${1:group_thing_user}\" model=\"res.groups\">",
+      "    <field name=\"name\">${2:User}</field>",
+      "    <field name=\"category_id\" ref=\"${3:base.module_category_hidden}\"/>",
+      "    <field name=\"implied_ids\" eval=\"[(4, ref('${4:base.group_user}'))]\"/>",
+      "</record>"
+    ]
+  },
+  "Odoo security: multi-company rule": {
+    "prefix": "orule",
+    "description": "ir.rule (record rule, multi-company)",
+    "body": [
+      "<record id=\"${1:my_thing}_rule_company\" model=\"ir.rule\">",
+      "    <field name=\"name\">${2:Thing: multi-company}</field>",
+      "    <field name=\"model_id\" ref=\"${3:model_my_thing}\"/>",
+      "    <field name=\"domain_force\">[('company_id', 'in', company_ids)]</field>",
+      "    <field name=\"global\" eval=\"True\"/>",
+      "</record>"
+    ]
+  },
+  "Odoo: config parameter": {
+    "prefix": "oparam",
+    "description": "ir.config_parameter default",
+    "body": [
+      "<record id=\"${1:param_thing}\" model=\"ir.config_parameter\" forcecreate=\"False\">",
+      "    <field name=\"key\">${2:my_thing.key}</field>",
+      "    <field name=\"value\">${3:value}</field>",
+      "</record>"
+    ]
+  },
+  "Odoo: settings view": {
+    "prefix": "osettings",
+    "description": "Add a setting in res.config.settings (Odoo 18 <setting>)",
+    "body": [
+      "<record id=\"res_config_settings_view_form_${1:my_module}\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">res.config.settings.view.form.inherit.${1:my_module}</field>",
+      "    <field name=\"model\">res.config.settings</field>",
+      "    <field name=\"inherit_id\" ref=\"${2:base.res_config_settings_view_form}\"/>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <xpath expr=\"//form\" position=\"inside\">",
+      "            <app string=\"${3:My App}\" name=\"${1:my_module}\">",
+      "                <block title=\"${4:Options}\">",
+      "                    <setting string=\"${5:My option}\" help=\"${6:Explain it}\">",
+      "                        <field name=\"${7:my_option}\"/>",
+      "                    </setting>",
+      "                </block>",
+      "            </app>",
+      "        </xpath>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo report: PDF": {
+    "prefix": "oreport",
+    "description": "ir.actions.report + QWeb template",
+    "body": [
+      "<record id=\"${1:action_report_thing}\" model=\"ir.actions.report\">",
+      "    <field name=\"name\">${2:Thing}</field>",
+      "    <field name=\"model\">${3:my.thing}</field>",
+      "    <field name=\"report_type\">qweb-pdf</field>",
+      "    <field name=\"report_name\">${4:module}.${5:report_thing}</field>",
+      "    <field name=\"report_file\">${4:module}.${5:report_thing}</field>",
+      "    <field name=\"binding_model_id\" ref=\"${6:model_my_thing}\"/>",
+      "    <field name=\"binding_type\">report</field>",
+      "</record>",
+      "",
+      "<template id=\"${5:report_thing}\">",
+      "    <t t-call=\"web.html_container\">",
+      "        <t t-foreach=\"docs\" t-as=\"o\">",
+      "            <t t-call=\"web.external_layout\">",
+      "                <div class=\"page\">",
+      "                    <h2><span t-field=\"o.name\"/></h2>",
+      "                    $0",
+      "                </div>",
+      "            </t>",
+      "        </t>",
+      "    </t>",
+      "</template>"
+    ]
+  },
+  "Odoo mail template": {
+    "prefix": "omailtemplate",
+    "description": "mail.template",
+    "body": [
+      "<record id=\"${1:mail_template_thing}\" model=\"mail.template\">",
+      "    <field name=\"name\">${2:Thing: notification}</field>",
+      "    <field name=\"model_id\" ref=\"${3:model_my_thing}\"/>",
+      "    <field name=\"subject\">${4:Your thing} {{ object.name }}</field>",
+      "    <field name=\"email_to\">{{ object.partner_id.email }}</field>",
+      "    <field name=\"body_html\" type=\"html\">",
+      "        <div>",
+      "            <p>Hello <t t-out=\"object.partner_id.name or ''\"/>,</p>",
+      "            $0",
+      "        </div>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "QWeb: foreach": {
+    "prefix": "otforeach",
+    "description": "t-foreach loop",
+    "body": [
+      "<t t-foreach=\"${1:records}\" t-as=\"${2:rec}\">",
+      "    $0",
+      "</t>"
+    ]
+  },
+  "QWeb: if": {
+    "prefix": "otif",
+    "description": "t-if / t-else",
+    "body": [
+      "<t t-if=\"${1:condition}\">",
+      "    $0",
+      "</t>",
+      "<t t-else=\"\">",
+      "</t>"
+    ]
+  },
+  "OWL: template": {
+    "prefix": "oowltemplate",
+    "description": "OWL component template (static/src/**/*.xml)",
+    "body": [
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+      "<templates xml:space=\"preserve\">",
+      "    <t t-name=\"${1:module}.${2:MyComponent}\">",
+      "        <div class=\"o_${3:my_component}\">",
+      "            $0",
+      "        </div>",
+      "    </t>",
+      "</templates>"
+    ]
+  },
+  "OWL: template inherit": {
+    "prefix": "oowlinherit",
+    "description": "Extend an existing OWL template (t-inherit)",
+    "body": [
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+      "<templates xml:space=\"preserve\">",
+      "    <t t-name=\"${1:module}.${2:FormController}\" t-inherit=\"${3:web.FormView}\" t-inherit-mode=\"extension\">",
+      "        <xpath expr=\"${4://div[hasclass('o_form_view')]}\" position=\"${5|inside,after,before,replace|}\">",
+      "            $0",
+      "        </xpath>",
+      "    </t>",
+      "</templates>"
+    ]
+  }
+}

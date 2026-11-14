@@ -1,0 +1,34 @@
+{
+  "name": "odoo-snippets",
+  "description": "Odoo 18 snippets. Edit python.json / xml.json / javascript.json / csv.json",
+  "contributes": {
+    "snippets": [
+      {
+        "language": [
+          "python"
+        ],
+        "path": "./python.json"
+      },
+      {
+        "language": [
+          "xml",
+          "html"
+        ],
+        "path": "./xml.json"
+      },
+      {
+        "language": [
+          "javascript",
+          "typescript"
+        ],
+        "path": "./javascript.json"
+      },
+      {
+        "language": [
+          "csv"
+        ],
+        "path": "./csv.json"
+      }
+    ]
+  }
+}
