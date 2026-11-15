@@ -1,0 +1,5 @@
+:Odoo	odoo-nvim.txt	/*:Odoo*
+odoo-nvim-cli	odoo-nvim.txt	/*odoo-nvim-cli*
+odoo-nvim-minimap	odoo-nvim.txt	/*odoo-nvim-minimap*
+odoo-nvim-settings	odoo-nvim.txt	/*odoo-nvim-settings*
+odoo-nvim.txt	odoo-nvim.txt	/*odoo-nvim.txt*

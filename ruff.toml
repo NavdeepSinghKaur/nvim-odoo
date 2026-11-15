@@ -1,0 +1,5 @@
+# Python helpers in scripts/ (CI: ruff check, ruff format --check)
+line-length = 100
+
+[lint]
+select = ["E", "F", "W", "B", "I"]

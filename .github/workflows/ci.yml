@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Unit tests of the Odoo modules: needs only Neovim and git.
+  test:
+    name: tests (Neovim ${{ matrix.neovim }})
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.neovim == 'nightly' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        neovim: [stable, nightly]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim }}
+      - run: make test
+
+  # Shell and Python helpers.
+  scripts:
+    name: shell and python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck scripts/install.sh scripts/install-odoo-ls.sh scripts/odoo-nvim tests/fake-docker/docker
+      - run: pipx run ruff check scripts
+      - run: pipx run ruff format --check scripts
+
+  # The real thing: the unattended install on a clean machine, then every check with the
+  # tools the config installed itself (StyLua, selene, lua-language-server come from Mason).
+  install:
+    name: unattended install + make check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+      - name: Programs the config needs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep fd-find unzip
+          npm install -g tree-sitter-cli
+      - name: Cache plugins, tools and parsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/nvim
+          key: nvim-data-${{ runner.os }}-${{ hashFiles('lazy-lock.json', 'lua/config/tools.lua') }}
+      - name: Install
+        run: |
+          scripts/install.sh --yes | tee install.log
+          tail -n 1 install.log | grep -qx 'RESULT: ok'
+      - name: Neovim starts without errors
+        run: |
+          nvim --headless "+lua if vim.v.errmsg ~= '' then io.stderr:write(vim.v.errmsg, '\n') vim.cmd('cquit 1') end" +qa
+      - name: odoo-nvim runs
+        run: |
+          ~/.local/bin/odoo-nvim help
+          ~/.local/bin/odoo-nvim doctor --json || true
+      - run: make check

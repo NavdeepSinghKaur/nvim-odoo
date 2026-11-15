@@ -12,11 +12,13 @@ had problems are all forwarded.
 
 Usage (see lua/plugins/lsp.lua):  python3 odoo_ls_proxy.py odoo_ls_server [server args...]
 """
+
 import io
 import json
 import subprocess
 import sys
 import threading
+
 
 def read_message(stream):
     """Read one LSP frame. Returns (raw_frame_bytes, body_bytes) or (None, None) at EOF.
@@ -41,7 +43,9 @@ def read_message(stream):
 
 
 def main():
-    server = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0)
+    server = subprocess.Popen(
+        sys.argv[1:], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0
+    )
     # the pipe itself is unbuffered (bufsize=0, so writes to the server are not delayed);
     # reads go through a buffer instead of one system call per byte
     server_out = io.BufferedReader(server.stdout, 1 << 16)

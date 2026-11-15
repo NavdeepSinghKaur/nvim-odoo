@@ -1,0 +1,56 @@
+*odoo-nvim.txt*  Odoo development with Docker in Neovim
+
+Everything is under <Space>o (press it and wait) and |:Odoo|.
+The cheat sheet with every key: <Space>?  (CHEATSHEET.md)
+
+==============================================================================
+COMMANDS                                                               *:Odoo*
+
+:Odoo                   choose from every sub-command
+:Odoo {command} [arg]   run one; <Tab> completes commands and module names
+
+Setup ~
+  setup [dir]     detect your settings from the project and write local.lua
+  config          edit lua/odoo/local.lua by hand
+  health          check programs, settings, compose file, container
+  info            what is used right now: container, database, folders
+  sync-core       copy the Odoo source out of the Docker image
+  ai-init         write the brief for AI agents into the workspace
+
+Server and modules ~
+  update [mod]    -u the module of this file, then restart
+  update-xml      -u without restart (XML / data only)
+  install [mod]   install a module
+  restart  start  stop  logs  qf
+  test [mod]      tests of the module        test-cursor   the test under the cursor
+  debug           start under debugpy and attach        attach
+  shell  psql  bash  db  browser
+
+Find ~
+  models  model-cursor  xmlids  xmlid-cursor  views  modules  manifest
+  files  grep  files-core  grep-core  files-addons  grep-addons  grep-word
+
+==============================================================================
+SETTINGS                                                 *odoo-nvim-settings*
+
+lua/odoo/local.lua returns a table. Every key is optional; the defaults and
+their meaning are in lua/odoo/settings.lua and lua/odoo/local.example.lua.
+Unknown keys, wrong types and missing folders are reported at startup.
+
+The environment variable ODOO_NVIM_SETTINGS selects another file, for
+example one per project: >
+    ODOO_NVIM_SETTINGS=~/work/client-a/odoo-nvim.lua nvim
+<
+==============================================================================
+COMMAND LINE                                                  *odoo-nvim-cli*
+
+`odoo-nvim` runs the same actions from a terminal, for scripts and AI
+agents: update, install, test, logs, last, start, stop, restart, dbs, info,
+doctor, setup, brief. See `odoo-nvim help` and docs/AI.md.
+
+==============================================================================
+MINIMAP                                                   *odoo-nvim-minimap*
+
+<Space>um toggles a minimap on the right of each code window.
+
+ vim:tw=78:ts=8:ft=help:norl:
