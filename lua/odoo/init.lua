@@ -31,13 +31,15 @@ function M.test_tag_at_cursor()
   if not module then return nil end
   local row = vim.api.nvim_win_get_cursor(0)[1]
   local lines = vim.api.nvim_buf_get_lines(0, 0, row, false)
-  local method, class
+  local method, class -- method: nil = not found yet, false = inside a method that is not a test
   for i = #lines, 1, -1 do
-    local l = lines[i]
-    if not method and not class then method = l:match("^%s+def (test_[%w_]+)") end
-    class = l:match("^class ([%w_]+)")
+    local line = lines[i]
+    if method == nil then
+      local name = line:match("^%s+def ([%w_]+)")
+      if name then method = name:match("^test_") and name or false end
+    end
+    class = line:match("^class ([%w_]+)")
     if class then break end
-    if not method and l:match("^%s+def ") then method = false end -- inside a non-test method
   end
   if not class then return "/" .. module, module end
   return "/" .. module .. ":" .. class .. (method and ("." .. method) or ""), module
