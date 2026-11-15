@@ -24,12 +24,12 @@ function H.reset()
   end
 end
 
---- Create a small project and install fake settings for it:
+--- Create a small project and load settings for it (as if local.lua returned them):
 ---   ws/custom/my_mod          your code
 ---   ws/oca/web/web_responsive a folder of repos (read-only)
 ---   core/odoo/addons/sale     Odoo core
----@param overrides? table settings to change
----@return table settings, string root
+---@param overrides? table local.lua values to change
+---@return OdooSettings settings, string root
 function H.project(overrides)
   local root = H.tmpdir()
   H.write(root .. "/ws/custom/my_mod/__manifest__.py", { "{}" })
@@ -39,34 +39,24 @@ function H.project(overrides)
   H.write(root .. "/core/odoo/models.py", { "# core" })
   vim.fn.mkdir(root .. "/docker", "p")
 
-  local settings = vim.tbl_extend("force", {
+  local user = vim.tbl_extend("force", {
     workspace = root .. "/ws",
     own_addons = { root .. "/ws/custom" },
     core = root .. "/core",
-    core_addons = root .. "/core/odoo/addons",
-    addons_paths = { root .. "/ws/custom", root .. "/ws/oca", root .. "/core/odoo/addons" },
+    addons_paths = { root .. "/ws/custom", root .. "/ws/oca" },
     readonly_paths = { root .. "/core", root .. "/ws/oca" },
     python = "/usr/bin/python3",
     compose_dir = root .. "/docker",
-    service = "odoo",
-    db_service = "db",
     container = "odoo_web",
-    odoo_conf = "/etc/odoo/odoo.conf",
-    odoo_bin = "/usr/bin/odoo",
-    db_user = "odoo",
-    core_remote = "/usr/lib/python3/dist-packages/odoo",
-    oneoff_args = { "--http-port=8071", "--gevent-port=8073" },
-    debug = { host = "127.0.0.1", port = 5678, extra_args = { "--dev=xml" } },
+    debug = { extra_args = { "--dev=xml" } },
     path_mappings = {
       { remote = "/mnt/custom", ["local"] = root .. "/ws/custom" },
       { remote = "/mnt/oca", ["local"] = root .. "/ws/oca" },
     },
-    web_url = "http://localhost:8069",
-    odoo_ls_cmd = "odoo_ls_server",
   }, overrides or {})
 
   H.reset()
-  package.loaded["odoo.settings"] = settings
+  local settings = require("odoo.settings").load(user)
   return settings, root
 end
 

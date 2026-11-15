@@ -131,15 +131,19 @@ end
 ---@param tries? integer seconds left to wait (default 90)
 function M.wait_debugpy(on_ready, tries)
   tries = tries or 90
-  vim.system(compose.argv.debugpy_probe(), {}, function(result)
+  local function retry()
+    if tries > 0 then
+      vim.defer_fn(function() M.wait_debugpy(on_ready, tries - 1) end, 1000)
+    else
+      vim.notify("debugpy did not start, check :Odoo logs", vim.log.levels.ERROR)
+    end
+  end
+  local probe = compose.argv.debugpy_probe()
+  if not probe then return retry() end -- the container is still being created
+  vim.system(probe, {}, function(result)
     vim.schedule(function()
-      if result.code == 0 then
-        on_ready()
-      elseif tries > 0 then
-        vim.defer_fn(function() M.wait_debugpy(on_ready, tries - 1) end, 1000)
-      else
-        vim.notify("debugpy did not start, check :Odoo logs", vim.log.levels.ERROR)
-      end
+      if result.code == 0 then return on_ready() end
+      retry()
     end)
   end)
 end

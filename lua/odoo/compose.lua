@@ -51,13 +51,13 @@ end
 ---@return string[]?
 function M.command() return M.service_config().command end
 
---- Container name or id of the odoo service.
----@return string
+--- Container name or id of the odoo service (nil while it is not created).
+---@return string?
 function M.container()
   if settings.container then return settings.container end
   local ok, out = M.run_sync(M.compose({ "ps", "-aq", settings.service }))
   local id = ok and vim.split(out, "\n")[1] or ""
-  return id ~= "" and id or (settings.service .. " (not created)")
+  return id ~= "" and id or nil
 end
 
 --- Database for update / install / test / shell: the runtime choice, else settings.db,
@@ -82,8 +82,11 @@ end
 
 ---@return OdooContainerStatus
 function M.status()
-  local ok, out = M.run_sync({ "docker", "inspect", "-f", "{{.State.Running}}|{{json .Config.Cmd}}", M.container() })
-  if not ok then return { exists = false, running = false, debug = false } end
+  local missing = { exists = false, running = false, debug = false }
+  local container = M.container()
+  if not container then return missing end
+  local ok, out = M.run_sync({ "docker", "inspect", "-f", "{{.State.Running}}|{{json .Config.Cmd}}", container })
+  if not ok then return missing end
   local running, command = out:match("^(%a+)|(.*)$")
   return { exists = true, running = running == "true", debug = (command or ""):find("debugpy", 1, true) ~= nil }
 end
@@ -173,9 +176,12 @@ end
 --- Succeeds once debugpy listens inside the container. It does not connect to the port:
 --- debugpy takes the first connection as its client and then ignores the real one, so the
 --- probe looks for a LISTEN socket in /proc/net/tcp instead.
+---@return string[]? nil while the container does not exist
 function argv.debugpy_probe()
+  local container = M.container()
+  if not container then return nil end
   local probe = ("grep -q ':%04X 00000000:0000 0A' /proc/net/tcp /proc/net/tcp6"):format(settings.debug.port)
-  return { "docker", "exec", M.container(), "sh", "-c", probe }
+  return { "docker", "exec", container, "sh", "-c", probe }
 end
 
 -- ------------------------------------------------------------------ debug mode

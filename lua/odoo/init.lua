@@ -98,7 +98,7 @@ function M.info()
   local name, dir = paths.module_of()
   local lines = {
     "Container   "
-      .. docker().container()
+      .. (docker().container() or settings.service)
       .. ": "
       .. (not st.exists and "not created" or st.running and "running" or "stopped")
       .. (st.debug and "  🐞 DEBUG MODE (debugpy :" .. settings.debug.port .. ")" or ""),
@@ -148,7 +148,7 @@ echo "Odoo core copied to $core"]]
       settings.core,
       settings.core_remote,
       image or "",
-      image and "" or docker().container(),
+      image and "" or docker().container() or "",
     },
     quickfix = false,
     on_exit = function(code)
@@ -173,13 +173,19 @@ function M.statusline()
   return "󰑮 " .. table.concat(running, ", ")
 end
 
-function M.setup()
+--- Tell the user, once the UI is up, what is missing or wrong in their settings.
+local function report_settings()
+  local message
   if not settings.configured then
-    vim.defer_fn(
-      function() vim.notify("Odoo paths are not set yet → run  :Odoo config", vim.log.levels.WARN, { title = "Odoo" }) end,
-      500
-    )
+    message = "Odoo paths are not set yet → run  :Odoo config"
+  elseif #settings.problems > 0 then
+    message = "Problems in lua/odoo/local.lua (:Odoo config):\n• " .. table.concat(settings.problems, "\n• ")
   end
+  if message then vim.defer_fn(function() vim.notify(message, vim.log.levels.WARN, { title = "Odoo" }) end, 500) end
+end
+
+function M.setup()
+  report_settings()
   require("odoo.git_watch").setup()
   require("odoo.commands").setup()
 end
