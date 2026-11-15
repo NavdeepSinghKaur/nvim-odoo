@@ -151,6 +151,48 @@ return {
     },
   },
 
+  -- Minimap on the right edge of each code window, like VSCode: <Space>um
+  -- Off until you ask for it. Shows the code shape in colour, errors, git changes and search
+  -- matches; click it to jump. To have it on at every start, set auto_enable = true below.
+  {
+    "Isrothy/neominimap.nvim",
+    version = "v3.x.x",
+    lazy = false, -- nothing heavy runs until the minimap is enabled
+    init = function()
+      local width = 18
+      vim.g.neominimap = {
+        auto_enable = false,
+        layout = "float", -- one per window, so it never overlaps the Claude or explorer panels
+        float = { minimap_width = width, window_border = "none" },
+        -- panels, terminals and the log are skipped by their buffer type (the plugin default)
+        exclude_filetypes = { "help", "bigfile", "snacks_dashboard" },
+        click = { enabled = true, auto_switch_focus = false },
+        search = { enabled = true },
+      }
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "VeryLazy",
+        once = true,
+        callback = function()
+          local code_margin = vim.o.sidescrolloff
+          Snacks.toggle({
+            name = "Minimap",
+            get = function() return require("neominimap.api").enabled() end,
+            set = function(on)
+              local minimap = require("neominimap.api")
+              if on then
+                minimap.enable()
+              else
+                minimap.disable()
+              end
+              -- long lines scroll before the cursor goes under the minimap
+              vim.o.sidescrolloff = on and (width + code_margin) or code_margin
+            end,
+          }):map("<leader>um")
+        end,
+      })
+    end,
+  },
+
   -- Nice rendering of Markdown (README, cheat sheet, docs/rag)
   {
     "MeanderingProgrammer/render-markdown.nvim",
