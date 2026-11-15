@@ -51,14 +51,27 @@ end
 ---@return string[]?
 function M.command() return M.service_config().command end
 
---- Container name or id of the odoo service (nil while it is not created).
+local container_id
+
+--- Container name or id of the odoo service (nil while it is not created): settings.container,
+--- else the `container_name:` of the compose file, else what `docker compose ps` says.
+--- The answer is remembered until forget_container().
 ---@return string?
 function M.container()
   if settings.container then return settings.container end
-  local ok, out = M.run_sync(M.compose({ "ps", "-aq", settings.service }))
-  local id = ok and vim.split(out, "\n")[1] or ""
-  return id ~= "" and id or nil
+  if not container_id then
+    container_id = M.service_config().container_name
+    if not container_id then
+      local ok, out = M.run_sync(M.compose({ "ps", "-aq", settings.service }))
+      local id = ok and vim.split(out, "\n")[1] or ""
+      container_id = id ~= "" and id or nil
+    end
+  end
+  return container_id
 end
+
+--- The container was (re)created or removed: look it up again next time.
+function M.forget_container() container_id = nil end
 
 --- Database for update / install / test / shell: the runtime choice, else settings.db,
 --- else the `-d` of the compose command, else "odoo".
@@ -214,6 +227,8 @@ function M.debug_override_file()
 end
 
 --- Forget what was read from the compose file (after it changed).
-function M.reset() service_cache = nil end
+function M.reset()
+  service_cache, container_id = nil, nil
+end
 
 return M

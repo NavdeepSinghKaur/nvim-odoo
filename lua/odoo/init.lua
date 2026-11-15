@@ -152,7 +152,9 @@ echo "Odoo core copied to $core"]]
     },
     quickfix = false,
     on_exit = function(code)
-      if code == 0 then vim.cmd("silent! OdooLs restart") end
+      if code ~= 0 then return end
+      vim.cmd("silent! OdooLs restart")
+      pickers().clear_cache()
     end,
   })
 end

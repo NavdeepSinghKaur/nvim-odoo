@@ -2,26 +2,51 @@
 local settings = require("odoo.settings")
 local M = {}
 
-local function norm(p) return (vim.fs.normalize(vim.fn.fnamemodify(p, ":p")):gsub("/$", "")) end
+---@param path string
+---@return string path absolute and normalized (no trailing slash)
+local function norm(path) return (vim.fs.normalize(vim.fn.fnamemodify(path, ":p")):gsub("/$", "")) end
 
-local function under(path, dir)
-  path, dir = norm(path), norm(dir)
-  return path == dir or path:sub(1, #dir + 1) == dir .. "/"
-end
+--- Is the normalized `path` the normalized `dir` or something inside it?
+local function inside(path, dir) return path == dir or path:sub(1, #dir + 1) == dir .. "/" end
 
+--- Is `path` inside one of `dirs`?
+---@param path? string
+---@param dirs string[]
+---@return boolean
 function M.under_any(path, dirs)
   if not path or path == "" then return false end
-  for _, d in ipairs(dirs) do
-    if under(path, d) then return true end
+  path = norm(path)
+  for _, dir in ipairs(dirs) do
+    if inside(path, norm(dir)) then return true end
   end
   return false
 end
 
-function M.is_own(path) return M.under_any(path, settings.own_addons) end
-function M.is_readonly(path) return M.under_any(path, settings.readonly_paths) end
-function M.is_odoo(path)
-  return M.under_any(path, vim.list_extend({ settings.core }, vim.deepcopy(settings.addons_paths)))
+-- The folder lists of the settings, normalized once: these checks run for every buffer
+-- (language server roots, format on save, read-only warning).
+local folders = {}
+
+---@param name string cache key
+---@param list fun(): string[]
+---@return fun(path?: string): boolean
+local function inside_folders(name, list)
+  return function(path)
+    if not path or path == "" then return false end
+    folders[name] = folders[name] or vim.tbl_map(norm, list())
+    path = norm(path)
+    for _, dir in ipairs(folders[name]) do
+      if inside(path, dir) then return true end
+    end
+    return false
+  end
 end
+
+--- Code you write (settings.own_addons)
+M.is_own = inside_folders("own", function() return settings.own_addons end)
+--- Code you only read (settings.readonly_paths)
+M.is_readonly = inside_folders("readonly", function() return settings.readonly_paths end)
+--- Odoo core or any addons folder
+M.is_odoo = inside_folders("odoo", function() return vim.list_extend({ settings.core }, settings.addons_paths) end)
 
 --- Module of a file: walks up until a folder with __manifest__.py. Returns name, dir.
 function M.module_of(path)
@@ -109,6 +134,11 @@ function M.addon_dirs()
   end
   addon_dirs_cache = dirs
   return vim.deepcopy(dirs)
+end
+
+--- Forget everything derived from the settings and the compose file.
+function M.reset()
+  folders, mappings_cache, addon_dirs_cache = {}, nil, nil
 end
 
 --- "core", "web" (repo inside a folder of repos -> "oca/web") or the folder name

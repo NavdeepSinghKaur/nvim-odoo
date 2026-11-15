@@ -19,7 +19,8 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
   spec = { { import = "plugins" } }, -- every file in lua/plugins/ is loaded
   install = { colorscheme = { "tokyonight", "habamax" } },
-  checker = { enabled = true, notify = false }, -- check for updates silently (shown in statusline)
+  -- check for plugin updates silently once a day (shown in the statusline)
+  checker = { enabled = true, notify = false, frequency = 86400 },
   change_detection = { notify = false },
   rocks = { enabled = false }, -- no plugin here needs luarocks
   ui = { border = "rounded" },

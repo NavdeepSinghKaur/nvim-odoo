@@ -24,6 +24,7 @@ return {
     opts = {
       ensure_installed = require("config.tools").mason,
       run_on_start = true,
+      debounce_hours = 24, -- look for missing tools once a day, not at every start
     },
   },
 

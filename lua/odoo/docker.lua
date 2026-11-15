@@ -18,7 +18,7 @@ M.debug_override_file = compose.debug_override_file
 --- Run a compose command in the log panel.
 ---@param title string
 ---@param cmd string[]
----@param opts? { on_exit?: fun(code: integer, lines: string[]), quickfix?: boolean }
+---@param opts? { on_exit?: fun(code: integer, lines: string[]), quickfix?: boolean, max_lines?: integer }
 local function run(title, cmd, opts)
   return log.run(vim.tbl_extend("force", { title = title, cmd = cmd, cwd = settings.compose_dir }, opts or {}))
 end
@@ -88,11 +88,15 @@ function M.test(module, tag)
   })
 end
 
-function M.logs() run_plain("logs", compose.argv.logs()) end
+-- A followed log never ends: keep the panel (and memory) bounded.
+local FOLLOWED_LOG_LINES = 20000
+
+function M.logs() run("logs", compose.argv.logs(), { quickfix = false, max_lines = FOLLOWED_LOG_LINES }) end
 
 ---@param on_done? fun(code: integer)
 function M.up(on_done)
   run_plain("start", compose.argv.up(), function(code)
+    compose.forget_container() -- `up` may have recreated it
     if code == 0 then vim.notify("Odoo running (normal mode) → " .. settings.web_url) end
     if on_done then on_done(code) end
   end)
@@ -153,6 +157,7 @@ end
 function M.debug_up(on_ready)
   vim.notify("Restarting Odoo in DEBUG mode…")
   run_plain("start debug", compose.argv.debug_up(compose.debug_override_file()), function(code)
+    compose.forget_container() -- the changed command recreates it
     if code ~= 0 then
       vim.notify("Could not start debug mode", vim.log.levels.ERROR)
       return

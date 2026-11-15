@@ -20,37 +20,92 @@ local function module_from_path(file)
   return "?", ""
 end
 
--- Scan results are cached; a save of a .py/.xml file or a git checkout refreshes them.
-local cache = {}
-function M.clear_cache() cache = {} end
-vim.api.nvim_create_autocmd("BufWritePost", {
-  group = vim.api.nvim_create_augroup("odoo_picker_cache", { clear = true }),
-  pattern = { "*.py", "*.xml" },
-  callback = function() cache = {} end,
-})
+---@class OdooRgMatch
+---@field file string
+---@field lnum integer
+---@field col integer
+---@field text string
 
-local rg
-local function cached_rg(key, args, dirs, cb)
-  if cache[key] then return cb(cache[key]) end
-  vim.notify("Scanning addons…", vim.log.levels.INFO, { id = "odoo_scan" })
-  rg(args, dirs, function(found)
-    cache[key] = found
-    Snacks.notifier.hide("odoo_scan")
-    cb(found)
-  end)
-end
-
-function rg(args, dirs, cb)
+--- Run ripgrep and parse its matches.
+---@param args string[]
+---@param dirs string[]
+---@param cb fun(found: OdooRgMatch[])
+local function rg(args, dirs, cb)
   local cmd = { "rg", "--no-heading", "--with-filename", "--line-number", "--column", "--no-messages", "--color=never" }
   vim.list_extend(cmd, args)
   vim.list_extend(cmd, dirs)
-  vim.system(cmd, { text = true }, function(r)
-    local out = {}
-    for line in (r.stdout or ""):gmatch("[^\n]+") do
-      local f, l, c, t = line:match("^(.-):(%d+):(%d+):(.*)$")
-      if f then table.insert(out, { file = f, lnum = tonumber(l), col = tonumber(c), text = t }) end
+  vim.system(cmd, { text = true }, function(result)
+    local found = {}
+    for line in (result.stdout or ""):gmatch("[^\n]+") do
+      local file, lnum, col, text = line:match("^(.-):(%d+):(%d+):(.*)$")
+      if file then table.insert(found, { file = file, lnum = tonumber(lnum), col = tonumber(col), text = text }) end
     end
-    vim.schedule(function() cb(out) end)
+    vim.schedule(function() cb(found) end)
+  end)
+end
+
+-- Scan results are kept per addons folder: scans[key][dir] = matches. Saving a .py/.xml file
+-- drops only the folder it is in, so the next picker rescans your code and not Odoo core
+-- and every OCA repo again. A git checkout drops everything (lua/odoo/git_watch.lua).
+---@type table<string, table<string, OdooRgMatch[]>>
+local scans = {}
+
+--- Forget the scans of one addons folder, or all of them.
+---@param dir? string
+function M.clear_cache(dir)
+  if not dir then
+    scans, dirs_cache = {}, nil
+    return
+  end
+  for _, by_dir in pairs(scans) do
+    by_dir[dir] = nil
+  end
+end
+
+vim.api.nvim_create_autocmd("BufWritePost", {
+  group = vim.api.nvim_create_augroup("odoo_picker_cache", { clear = true }),
+  pattern = { "*.py", "*.xml" },
+  callback = function(ev)
+    local file = vim.fs.normalize(vim.api.nvim_buf_get_name(ev.buf))
+    for _, dir in ipairs(paths.addon_dirs()) do
+      if file:sub(1, #dir + 1) == dir .. "/" then M.clear_cache(dir) end
+    end
+  end,
+})
+
+--- ripgrep over `dirs`, scanning only the folders that have no cached result for `key`.
+---@param key string what is searched ("models", "xmlids")
+---@param args string[]
+---@param dirs string[]
+---@param cb fun(found: OdooRgMatch[])
+function M.scan(key, args, dirs, cb)
+  scans[key] = scans[key] or {}
+  local by_dir = scans[key]
+  local function finish()
+    local all = {}
+    for _, dir in ipairs(dirs) do
+      vim.list_extend(all, by_dir[dir] or {})
+    end
+    cb(all)
+  end
+  local missing = vim.tbl_filter(function(dir) return by_dir[dir] == nil end, dirs)
+  if #missing == 0 then return finish() end
+
+  vim.notify("Scanning addons…", vim.log.levels.INFO, { id = "odoo_scan" })
+  rg(args, missing, function(found)
+    for _, dir in ipairs(missing) do
+      by_dir[dir] = {}
+    end
+    for _, match in ipairs(found) do
+      for _, dir in ipairs(missing) do
+        if match.file:sub(1, #dir + 1) == dir .. "/" then
+          table.insert(by_dir[dir], match)
+          break
+        end
+      end
+    end
+    Snacks.notifier.hide("odoo_scan")
+    finish()
   end)
 end
 
@@ -83,7 +138,7 @@ end
 function M.models(opts)
   opts = opts or {}
   local pattern = [=[^\s+_(name|inherit)\s*=\s*\[?\s*['"][a-z0-9_.]+['"]]=]
-  cached_rg("models", { "-t", "py", "-e", pattern }, paths.addon_dirs(), function(found)
+  M.scan("models", { "-t", "py", "-e", pattern }, paths.addon_dirs(), function(found)
     local items = {}
     for _, r in ipairs(found) do
       local kind, model = r.text:match("_(%a+)%s*=%s*%[?%s*['\"]([%w_.]+)")
@@ -132,7 +187,7 @@ end
 function M.xmlids(opts)
   opts = opts or {}
   local pattern = [=[<(record|template|menuitem)\b[^>]*\bid=["'][^"']+["']]=]
-  cached_rg("xmlids", { "-t", "xml", "-e", pattern }, paths.addon_dirs(), function(found)
+  M.scan("xmlids", { "-t", "xml", "-e", pattern }, paths.addon_dirs(), function(found)
     local items = {}
     for _, r in ipairs(found) do
       local tag = r.text:match("<(%a+)")
