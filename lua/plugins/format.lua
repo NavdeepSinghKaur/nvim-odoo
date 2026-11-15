@@ -10,12 +10,20 @@ return {
     event = "BufWritePre",
     cmd = "ConformInfo",
     keys = {
-      { "<leader>cf", function() require("conform").format({ async = true, lsp_format = "fallback" }) end,
-        mode = { "n", "x" }, desc = "Format file / selection" },
-      { "<leader>uf", function()
-        vim.g.disable_autoformat = not vim.g.disable_autoformat
-        vim.notify("Format on save: " .. (vim.g.disable_autoformat and "OFF" or "ON"))
-      end, desc = "Toggle format on save" },
+      {
+        "<leader>cf",
+        function() require("conform").format({ async = true, lsp_format = "fallback" }) end,
+        mode = { "n", "x" },
+        desc = "Format file / selection",
+      },
+      {
+        "<leader>uf",
+        function()
+          vim.g.disable_autoformat = not vim.g.disable_autoformat
+          vim.notify("Format on save: " .. (vim.g.disable_autoformat and "OFF" or "ON"))
+        end,
+        desc = "Toggle format on save",
+      },
     },
     opts = {
       formatters_by_ft = {
@@ -27,16 +35,9 @@ return {
         local name = vim.api.nvim_buf_get_name(bufnr)
         local ft = vim.bo[bufnr].filetype
         local odoo_paths = require("odoo.paths")
-        if ft == "python" and odoo_paths.is_own(name) then
-          return { timeout_ms = 3000, lsp_format = "never" }
-        end
-        if ft == "lua" and name:find(vim.fn.stdpath("config"), 1, true) then
-          return { timeout_ms = 2000 }
-        end
+        if ft == "python" and odoo_paths.is_own(name) then return { timeout_ms = 3000, lsp_format = "never" } end
+        if ft == "lua" and name:find(vim.fn.stdpath("config"), 1, true) then return { timeout_ms = 2000 } end
       end,
-      formatters = {
-        stylua = { prepend_args = { "--indent-type", "Spaces", "--indent-width", "2", "--column-width", "120" } },
-      },
     },
   },
 }

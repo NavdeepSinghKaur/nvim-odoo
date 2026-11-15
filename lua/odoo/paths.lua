@@ -51,7 +51,9 @@ function M.mappings()
     table.sort(list, function(a, b) return #a.remote > #b.remote end)
   end
   local has_core = false
-  for _, m in ipairs(list) do has_core = has_core or m.remote == S.core_remote end
+  for _, m in ipairs(list) do
+    has_core = has_core or m.remote == S.core_remote
+  end
   if not has_core then table.insert(list, { remote = S.core_remote, ["local"] = S.core .. "/odoo" }) end
   mappings_cache = list
   return list

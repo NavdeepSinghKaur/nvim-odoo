@@ -63,12 +63,14 @@ function M.model_under_cursor()
   local row = vim.api.nvim_win_get_cursor(0)[1]
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
   for i = row, 1, -1 do
-    local m = lines[i]:match("^%s+_name%s*=%s*['\"]([%w_.]+)") or lines[i]:match("^%s+_inherit%s*=%s*%[?%s*['\"]([%w_.]+)")
+    local m = lines[i]:match("^%s+_name%s*=%s*['\"]([%w_.]+)")
+      or lines[i]:match("^%s+_inherit%s*=%s*%[?%s*['\"]([%w_.]+)")
     if m then return m end
     if i < row and lines[i]:match("^class ") then
       -- also scan the class body below the class line
       for j = i + 1, math.min(i + 25, #lines) do
-        local n = lines[j]:match("^%s+_name%s*=%s*['\"]([%w_.]+)") or lines[j]:match("^%s+_inherit%s*=%s*%[?%s*['\"]([%w_.]+)")
+        local n = lines[j]:match("^%s+_name%s*=%s*['\"]([%w_.]+)")
+          or lines[j]:match("^%s+_inherit%s*=%s*%[?%s*['\"]([%w_.]+)")
         if n then return n end
       end
       break
@@ -89,8 +91,12 @@ function M.models(opts)
         local mod, label = module_from_path(r.file)
         table.insert(items, {
           text = model .. " " .. mod .. " " .. label,
-          model = model, kind = kind, module = mod, label = label,
-          file = r.file, pos = { r.lnum, r.col - 1 },
+          model = model,
+          kind = kind,
+          module = mod,
+          label = label,
+          file = r.file,
+          pos = { r.lnum, r.col - 1 },
         })
       end
     end
@@ -131,14 +137,20 @@ function M.xmlids(opts)
     for _, r in ipairs(found) do
       local tag = r.text:match("<(%a+)")
       local id = r.text:match("%sid=[\"']([^\"']+)[\"']")
-      local model = r.text:match("model=[\"']([^\"']+)[\"']") or (tag == "menuitem" and "menu") or (tag == "template" and "qweb") or ""
+      local model = r.text:match("model=[\"']([^\"']+)[\"']")
+        or (tag == "menuitem" and "menu")
+        or (tag == "template" and "qweb")
+        or ""
       if id then
         local mod, label = module_from_path(r.file)
         local full = id:find("%.") and id or (mod .. "." .. id)
         table.insert(items, {
           text = full .. " " .. model .. " " .. label,
-          xmlid = full, model = model, label = label,
-          file = r.file, pos = { r.lnum, r.col - 1 },
+          xmlid = full,
+          model = model,
+          label = label,
+          file = r.file,
+          pos = { r.lnum, r.col - 1 },
         })
       end
     end
@@ -174,7 +186,10 @@ function M.views(model)
   end
   local esc = model:gsub("%.", "\\.")
   local pattern = ([=[name=["'](model|res_model|model_id)["'][^>]*>\s*%s\s*<|model=["']%s["']|ref=["']model_%s["']]=]):format(
-    esc, esc, (model:gsub("%.", "_")))
+    esc,
+    esc,
+    (model:gsub("%.", "_"))
+  )
   rg({ "-t", "xml", "-e", pattern }, P.addon_dirs(), function(found)
     local items, cache = {}, {}
     for _, r in ipairs(found) do
@@ -191,8 +206,12 @@ function M.views(model)
       if rmodel ~= model then -- skip records OF the model itself (data), keep views/actions/rules
         table.insert(items, {
           text = (rid or "?") .. " " .. (rmodel or "") .. " " .. mod,
-          rid = rid or vim.fs.basename(r.file), rmodel = rmodel or "", module = mod, label = label,
-          file = r.file, pos = { r.lnum, 0 },
+          rid = rid or vim.fs.basename(r.file),
+          rmodel = rmodel or "",
+          module = mod,
+          label = label,
+          file = r.file,
+          pos = { r.lnum, 0 },
         })
       end
     end
@@ -220,7 +239,10 @@ function M.modules(opts)
       local manifest = d .. "/" .. name .. "/__manifest__.py"
       if t == "directory" and vim.uv.fs_stat(manifest) then
         local _, label = module_from_path(manifest)
-        table.insert(items, { text = name .. " " .. label, name = name, label = label, dir = d .. "/" .. name, file = manifest })
+        table.insert(
+          items,
+          { text = name .. " " .. label, name = name, label = label, dir = d .. "/" .. name, file = manifest }
+        )
       end
     end
   end
@@ -228,9 +250,7 @@ function M.modules(opts)
   Snacks.picker.pick({
     title = opts.title or "Odoo modules  (<CR> manifest · <C-e> explorer)",
     items = items,
-    format = function(item)
-      return { { ("%-45s"):format(item.name), "Function" }, { " " .. item.label, "Comment" } }
-    end,
+    format = function(item) return { { ("%-45s"):format(item.name), "Function" }, { " " .. item.label, "Comment" } } end,
     preview = "file",
     confirm = opts.confirm,
     actions = {
@@ -271,8 +291,12 @@ function M.grep_module()
 end
 function M.files_core() Snacks.picker.files({ dirs = { S.core }, title = "Files in Odoo core", exclude = ro_glob }) end
 function M.grep_core() Snacks.picker.grep({ dirs = { S.core }, title = "Grep in Odoo core", exclude = ro_glob }) end
-function M.files_addons() Snacks.picker.files({ dirs = P.addon_dirs(), title = "Files in ALL addons", exclude = ro_glob }) end
-function M.grep_addons() Snacks.picker.grep({ dirs = P.addon_dirs(), title = "Grep in ALL addons (core+oca+yours)", exclude = ro_glob }) end
+function M.files_addons()
+  Snacks.picker.files({ dirs = P.addon_dirs(), title = "Files in ALL addons", exclude = ro_glob })
+end
+function M.grep_addons()
+  Snacks.picker.grep({ dirs = P.addon_dirs(), title = "Grep in ALL addons (core+oca+yours)", exclude = ro_glob })
+end
 function M.grep_word_addons()
   Snacks.picker.grep_word({ dirs = P.addon_dirs(), title = "Word in ALL addons", exclude = ro_glob })
 end

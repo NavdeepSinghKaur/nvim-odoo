@@ -43,7 +43,11 @@ function M.breadcrumb()
     if t == "class_definition" or t == "function_definition" then
       local name = node:field("name")[1]
       if name then
-        table.insert(parts, 1, (t == "class_definition" and "󰠱 " or "󰊕 ") .. vim.treesitter.get_node_text(name, buf))
+        table.insert(
+          parts,
+          1,
+          (t == "class_definition" and "󰠱 " or "󰊕 ") .. vim.treesitter.get_node_text(name, buf)
+        )
       end
     elseif t == "element" then
       local name, attrs = xml_tag(node, buf)
@@ -93,9 +97,7 @@ local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇",
 function M.lsp_progress()
   for i = #order, 1, -1 do
     local text = active[order[i]]
-    if text then
-      return spinner[math.floor(vim.uv.hrtime() / (1e6 * 120)) % #spinner + 1] .. " " .. text
-    end
+    if text then return spinner[math.floor(vim.uv.hrtime() / (1e6 * 120)) % #spinner + 1] .. " " .. text end
     table.remove(order, i)
   end
   return ""

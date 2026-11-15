@@ -7,13 +7,13 @@ return {
   lazy = false,
   ---@type snacks.Config
   opts = {
-    bigfile = { enabled = true },   -- huge files (big .po / minified JS) open fast
+    bigfile = { enabled = true }, -- huge files (big .po / minified JS) open fast
     quickfile = { enabled = true },
-    input = { enabled = true },     -- nicer text prompts
+    input = { enabled = true }, -- nicer text prompts
     notifier = { enabled = true, timeout = 4000 },
-    indent = { enabled = true },    -- indentation guides
+    indent = { enabled = true }, -- indentation guides
     scope = { enabled = true },
-    words = { enabled = true },     -- highlights other uses of the word under cursor
+    words = { enabled = true }, -- highlights other uses of the word under cursor
     statuscolumn = { enabled = true },
     scroll = { enabled = false },
     lazygit = { configure = true },
@@ -61,7 +61,14 @@ return {
       sections = {
         { section = "header" },
         { section = "keys", gap = 0, padding = 1 },
-        { icon = " ", title = "Recent files (this folder)", section = "recent_files", cwd = true, indent = 2, padding = 1 },
+        {
+          icon = " ",
+          title = "Recent files (this folder)",
+          section = "recent_files",
+          cwd = true,
+          indent = 2,
+          padding = 1,
+        },
         { section = "startup" },
       },
     },
@@ -79,7 +86,11 @@ return {
     { "<leader>fb", function() Snacks.picker.buffers() end, desc = "Buffers" },
     { "<leader>fg", function() Snacks.picker.git_files() end, desc = "Git files" },
     { "<leader>fp", function() Snacks.picker.projects() end, desc = "Projects / folders" },
-    { "<leader>fc", function() Snacks.picker.files({ cwd = vim.fn.stdpath("config") }) end, desc = "Neovim config files" },
+    {
+      "<leader>fc",
+      function() Snacks.picker.files({ cwd = vim.fn.stdpath("config") }) end,
+      desc = "Neovim config files",
+    },
     -- search
     { "<leader>sg", function() Snacks.picker.grep() end, desc = "Grep (text in files)" },
     { "<leader>sw", function() Snacks.picker.grep_word() end, desc = "Word under cursor", mode = { "n", "x" } },
@@ -96,7 +107,7 @@ return {
     { "<leader>sj", function() Snacks.picker.jumps() end, desc = "Jump list" },
     { "<leader>sq", function() Snacks.picker.qflist() end, desc = "Quickfix list" },
     { "<leader>su", function() Snacks.picker.undo() end, desc = "Undo history" },
-    { "<leader>s\"", function() Snacks.picker.registers() end, desc = "Registers (clipboard history)" },
+    { '<leader>s"', function() Snacks.picker.registers() end, desc = "Registers (clipboard history)" },
     { "<leader>sr", function() Snacks.picker.resume() end, desc = "Resume last search" },
     { "<leader>sn", function() Snacks.picker.notifications() end, desc = "Notification history" },
     { "<leader>uC", function() Snacks.picker.colorschemes() end, desc = "Colorschemes" },
@@ -111,7 +122,11 @@ return {
     -- terminal
     { "<C-\\>", function() Snacks.terminal.toggle() end, desc = "Toggle terminal", mode = { "n", "t" } },
     { "<leader>tt", function() Snacks.terminal.toggle() end, desc = "Terminal (bottom)" },
-    { "<leader>tf", function() Snacks.terminal.toggle(nil, { win = { position = "float" } }) end, desc = "Terminal (float)" },
+    {
+      "<leader>tf",
+      function() Snacks.terminal.toggle(nil, { win = { position = "float" } }) end,
+      desc = "Terminal (float)",
+    },
     -- misc
     { "<leader>bd", function() Snacks.bufdelete() end, desc = "Close this file" },
     { "<leader>bo", function() Snacks.bufdelete.other() end, desc = "Close other files" },

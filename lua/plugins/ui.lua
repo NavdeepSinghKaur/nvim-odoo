@@ -13,13 +13,17 @@ return {
   },
   { "catppuccin/nvim", name = "catppuccin", lazy = true },
 
-  { "nvim-mini/mini.icons", lazy = true, opts = {},
+  {
+    "nvim-mini/mini.icons",
+    lazy = true,
+    opts = {},
     init = function()
       package.preload["nvim-web-devicons"] = function()
         require("mini.icons").mock_nvim_web_devicons()
         return package.loaded["nvim-web-devicons"]
       end
-    end },
+    end,
+  },
 
   -- The menu that pops up when you press <Space> (or g, z, [, ], ", ' ...) and wait.
   {
@@ -94,7 +98,9 @@ return {
             {
               function()
                 local names = {}
-                for _, c in ipairs(vim.lsp.get_clients({ bufnr = 0 })) do table.insert(names, c.name) end
+                for _, c in ipairs(vim.lsp.get_clients({ bufnr = 0 })) do
+                  table.insert(names, c.name)
+                end
                 return #names > 0 and (" " .. table.concat(names, " ")) or ""
               end,
               color = "Comment",

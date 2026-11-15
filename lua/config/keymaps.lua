@@ -74,12 +74,18 @@ map("n", "<leader>`", "<Cmd>e #<CR>", "Switch to last buffer")
 -- ---------------------------------------------------------------- Diagnostics / quickfix
 map("n", "]d", function() vim.diagnostic.jump({ count = 1, float = true }) end, "Next problem")
 map("n", "[d", function() vim.diagnostic.jump({ count = -1, float = true }) end, "Previous problem")
-map("n", "]e", function()
-  vim.diagnostic.jump({ count = 1, float = true, severity = vim.diagnostic.severity.ERROR })
-end, "Next error")
-map("n", "[e", function()
-  vim.diagnostic.jump({ count = -1, float = true, severity = vim.diagnostic.severity.ERROR })
-end, "Previous error")
+map(
+  "n",
+  "]e",
+  function() vim.diagnostic.jump({ count = 1, float = true, severity = vim.diagnostic.severity.ERROR }) end,
+  "Next error"
+)
+map(
+  "n",
+  "[e",
+  function() vim.diagnostic.jump({ count = -1, float = true, severity = vim.diagnostic.severity.ERROR }) end,
+  "Previous error"
+)
 map("n", "<leader>cd", vim.diagnostic.open_float, "Show problem under cursor")
 map("n", "]q", "<Cmd>cnext<CR>zz", "Next quickfix item")
 map("n", "[q", "<Cmd>cprev<CR>zz", "Previous quickfix item")
@@ -97,9 +103,7 @@ map("n", "<leader>fY", function()
   vim.fn.setreg("+", path)
   vim.notify("Copied: " .. path)
 end, "Copy relative file path")
-map("n", "<leader>un", function()
-  vim.wo.relativenumber = not vim.wo.relativenumber
-end, "Toggle relative numbers")
+map("n", "<leader>un", function() vim.wo.relativenumber = not vim.wo.relativenumber end, "Toggle relative numbers")
 map("n", "<leader>uw", function() vim.wo.wrap = not vim.wo.wrap end, "Toggle line wrap")
 map("n", "<leader>l", "<Cmd>Lazy<CR>", "Plugin manager (Lazy)")
 map("n", "<leader>?", function() require("odoo").cheatsheet() end, "Cheat sheet")

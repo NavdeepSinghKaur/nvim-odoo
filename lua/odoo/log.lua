@@ -13,10 +13,15 @@ local function paths() return require("odoo.paths") end
 -- Find a "file:line" reference in a log line. Returns local_path, lnum or nil.
 function M.parse_location(line)
   local file, lnum = line:match('File "([^"]+)", line (%d+)')
-  if not file then file, lnum = line:match("while parsing ([^%s:]+%.xml):(%d+)") end
-  if not file then file, lnum = line:match("(/[%w_%-%./]+%.%a+):(%d+)") end
   if not file then
-    file = line:match("(/mnt/[%w_%-%./]+%.%a+)") or line:match("(/usr/lib/python3/dist%-packages/odoo/[%w_%-%./]+%.%a+)")
+    file, lnum = line:match("while parsing ([^%s:]+%.xml):(%d+)")
+  end
+  if not file then
+    file, lnum = line:match("(/[%w_%-%./]+%.%a+):(%d+)")
+  end
+  if not file then
+    file = line:match("(/mnt/[%w_%-%./]+%.%a+)")
+      or line:match("(/usr/lib/python3/dist%-packages/odoo/[%w_%-%./]+%.%a+)")
     lnum = 1
   end
   if not file then return nil end
@@ -33,7 +38,11 @@ function M.to_qf(lines)
     if f then
       local nxt = lines[i + 1] and vim.trim(lines[i + 1]) or ""
       local item = { filename = f, lnum = l, text = vim.trim(line:gsub("^.-line %d+,?%s*", "")) .. "  │ " .. nxt }
-      if paths().is_own(f) then table.insert(own_first, item) else table.insert(items, item) end
+      if paths().is_own(f) then
+        table.insert(own_first, item)
+      else
+        table.insert(items, item)
+      end
     elseif line:match(" ERROR ") or line:match(" CRITICAL ") or line:match("^FAIL:") or line:match("^ERROR:") then
       table.insert(items, { text = line })
     end
@@ -43,8 +52,10 @@ function M.to_qf(lines)
 end
 
 local function highlight(buf)
-  vim.api.nvim_buf_call(buf, function()
-    vim.cmd([[
+  vim.api.nvim_buf_call(
+    buf,
+    function()
+      vim.cmd([[
       syntax clear
       syntax match OdooLogError /\v<(ERROR|CRITICAL)>.*/
       syntax match OdooLogError /\v^(FAIL|ERROR):.*/
@@ -58,7 +69,8 @@ local function highlight(buf)
       syntax match OdooLogCmd   /\v^\$ .*/
       syntax match OdooLogDate  /\v^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d+/
     ]])
-  end)
+    end
+  )
   vim.api.nvim_set_hl(0, "OdooLogError", { link = "DiagnosticError", default = true })
   vim.api.nvim_set_hl(0, "OdooLogWarn", { link = "DiagnosticWarn", default = true })
   vim.api.nvim_set_hl(0, "OdooLogInfo", { link = "DiagnosticInfo", default = true })
@@ -134,7 +146,9 @@ end
 
 function M.running()
   local t = {}
-  for title in pairs(M.jobs) do table.insert(t, title) end
+  for title in pairs(M.jobs) do
+    table.insert(t, title)
+  end
   return t
 end
 
@@ -156,7 +170,9 @@ function M.run(opts)
     data[1] = partial[1] .. data[1]
     partial[1] = table.remove(data)
     if #data == 0 then return end
-    for i, l in ipairs(data) do data[i] = l:gsub("\r", "") end
+    for i, l in ipairs(data) do
+      data[i] = l:gsub("\r", "")
+    end
     vim.list_extend(all, data)
     vim.schedule(function()
       if not vim.api.nvim_buf_is_valid(buf) then return end

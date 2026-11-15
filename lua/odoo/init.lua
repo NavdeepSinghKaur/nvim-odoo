@@ -69,17 +69,15 @@ function M.dap_config()
   }
 end
 
-function M.attach()
-  require("dap").run(M.dap_config())
-end
+function M.attach() require("dap").run(M.dap_config()) end
 
 --- F5 when not debugging: make sure Odoo runs under debugpy, then attach.
 function M.debug()
   local st = docker().status()
-  if st.running and st.debug then
-    return M.attach()
+  if st.running and st.debug then return M.attach() end
+  local start = function()
+    docker().debug_up(function() M.attach() end)
   end
-  local start = function() docker().debug_up(function() M.attach() end) end
   if not st.running then return start() end
   vim.ui.select({ "Yes, restart in debug mode", "No" }, {
     prompt = "Odoo runs in normal mode. Restart it under the debugger? (stays in debug mode until :Odoo start)",
@@ -104,18 +102,23 @@ end
 
 function M.open_manifest()
   local _, dir = P.module_of()
-  if dir then vim.cmd("edit " .. vim.fn.fnameescape(dir .. "/__manifest__.py")) else pickers().modules() end
+  if dir then
+    vim.cmd("edit " .. vim.fn.fnameescape(dir .. "/__manifest__.py"))
+  else
+    pickers().modules()
+  end
 end
 
-function M.browser(debug_mode)
-  vim.ui.open(S.web_url .. "/web" .. (debug_mode and "?debug=1" or ""))
-end
+function M.browser(debug_mode) vim.ui.open(S.web_url .. "/web" .. (debug_mode and "?debug=1" or "")) end
 
 function M.info()
   local st = docker().status()
   local name, dir = P.module_of()
   local lines = {
-    "Container   " .. docker().container() .. ": " .. (not st.exists and "not created" or st.running and "running" or "stopped")
+    "Container   "
+      .. docker().container()
+      .. ": "
+      .. (not st.exists and "not created" or st.running and "running" or "stopped")
       .. (st.debug and "  🐞 DEBUG MODE (debugpy :" .. S.debug.port .. ")" or ""),
     "Database    " .. docker().db() .. "   (change: :Odoo db)",
     "Module      " .. (name and (name .. "  " .. dir) or "-"),
@@ -134,8 +137,10 @@ function M.sync_core()
   local st = docker().status()
   local image = S.core_image or (not st.exists and docker().service_config().image) or nil
   if not image and not st.exists then
-    vim.notify("No container yet and no image known: run :Odoo start first, or set core_image (:Odoo config)",
-      vim.log.levels.ERROR)
+    vim.notify(
+      "No container yet and no image known: run :Odoo start first, or set core_image (:Odoo config)",
+      vim.log.levels.ERROR
+    )
     return
   end
   local script = [[set -e
@@ -151,9 +156,20 @@ rm -rf "$core" && mv "$core.new" "$core"
 echo "Odoo core copied to $core"]]
   require("odoo.log").run({
     title = "sync-core",
-    cmd = { "bash", "-c", script, "sync-core", S.core, S.core_remote, image or "", image and "" or docker().container() },
+    cmd = {
+      "bash",
+      "-c",
+      script,
+      "sync-core",
+      S.core,
+      S.core_remote,
+      image or "",
+      image and "" or docker().container(),
+    },
     quickfix = false,
-    on_exit = function(code) if code == 0 then vim.cmd("silent! OdooLs restart") end end,
+    on_exit = function(code)
+      if code == 0 then vim.cmd("silent! OdooLs restart") end
+    end,
   })
 end
 
@@ -175,10 +191,46 @@ end
 
 -- ------------------------------------------------------------------ :Odoo command
 M.commands = {
-  update = { function(a) if a then docker().update(a, true) else with_module(function(m) docker().update(m, true) end) end end, "Update module (-u) + restart (Python & XML changes)" },
-  ["update-xml"] = { function(a) if a then docker().update(a, false) else with_module(function(m) docker().update(m, false) end) end end, "Update module without restart (XML/data only, faster)" },
-  install = { function(a) if a then docker().install(a) else pickers().pick_module("Install which module?", docker().install) end end, "Install a module" },
-  test = { function(a) if a then docker().test(a) else with_module(function(m) docker().test(m) end) end end, "Run the tests of the module" },
+  update = {
+    function(a)
+      if a then
+        docker().update(a, true)
+      else
+        with_module(function(m) docker().update(m, true) end)
+      end
+    end,
+    "Update module (-u) + restart (Python & XML changes)",
+  },
+  ["update-xml"] = {
+    function(a)
+      if a then
+        docker().update(a, false)
+      else
+        with_module(function(m) docker().update(m, false) end)
+      end
+    end,
+    "Update module without restart (XML/data only, faster)",
+  },
+  install = {
+    function(a)
+      if a then
+        docker().install(a)
+      else
+        pickers().pick_module("Install which module?", docker().install)
+      end
+    end,
+    "Install a module",
+  },
+  test = {
+    function(a)
+      if a then
+        docker().test(a)
+      else
+        with_module(function(m) docker().test(m) end)
+      end
+    end,
+    "Run the tests of the module",
+  },
   ["test-cursor"] = { M.test_at_cursor, "Run the test class/method under the cursor" },
   restart = { function() docker().restart() end, "Restart the Odoo server" },
   start = { function() docker().up() end, "Start Odoo in NORMAL mode (leaves debug mode)" },
@@ -223,9 +275,10 @@ end
 
 function M.setup()
   if not S.configured then
-    vim.defer_fn(function()
-      vim.notify("Odoo paths are not set yet → run  :Odoo config", vim.log.levels.WARN, { title = "Odoo" })
-    end, 500)
+    vim.defer_fn(
+      function() vim.notify("Odoo paths are not set yet → run  :Odoo config", vim.log.levels.WARN, { title = "Odoo" }) end,
+      500
+    )
   end
   check_git_head()
   vim.api.nvim_create_autocmd({ "FocusGained", "TermClose" }, {
@@ -241,7 +294,9 @@ function M.setup()
       vim.ui.select(names, {
         prompt = "Odoo",
         format_item = function(n) return ("%-12s %s"):format(n, M.commands[n][2]) end,
-      }, function(c) if c then M.commands[c][1]() end end)
+      }, function(c)
+        if c then M.commands[c][1]() end
+      end)
       return
     end
     local c = M.commands[sub]

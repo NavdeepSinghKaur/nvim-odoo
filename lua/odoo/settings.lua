@@ -20,9 +20,11 @@ if M.configured then
   if ok and type(res) == "table" then
     user = res
   else
-    vim.schedule(function()
-      vim.notify("lua/odoo/local.lua has an error (using defaults):\n" .. tostring(res), vim.log.levels.ERROR)
-    end)
+    vim.schedule(
+      function()
+        vim.notify("lua/odoo/local.lua has an error (using defaults):\n" .. tostring(res), vim.log.levels.ERROR)
+      end
+    )
   end
 end
 local function opt(key, default)
@@ -57,14 +59,14 @@ M.python = ex(opt("python", vim.fn.exepath("python3")))
 -- ---------------------------------------------------------------- docker
 -- Folder with docker-compose.yml. Default: the workspace.
 M.compose_dir = ex(opt("compose_dir", M.workspace))
-M.service = opt("service", "odoo")                     -- odoo service name in the compose file
-M.db_service = opt("db_service", "db")                 -- postgres service name
-M.container = opt("container", nil)                    -- nil = ask `docker compose` for it
-M.odoo_conf = opt("odoo_conf", "/etc/odoo/odoo.conf")  -- path INSIDE the container
-M.odoo_bin = opt("odoo_bin", "/usr/bin/odoo")          -- odoo executable INSIDE the container
+M.service = opt("service", "odoo") -- odoo service name in the compose file
+M.db_service = opt("db_service", "db") -- postgres service name
+M.container = opt("container", nil) -- nil = ask `docker compose` for it
+M.odoo_conf = opt("odoo_conf", "/etc/odoo/odoo.conf") -- path INSIDE the container
+M.odoo_bin = opt("odoo_bin", "/usr/bin/odoo") -- odoo executable INSIDE the container
 M.db_user = opt("db_user", "odoo")
 M.core_remote = opt("core_remote", "/usr/lib/python3/dist-packages/odoo") -- odoo package INSIDE the container
-M.core_image = opt("core_image", nil)                  -- image for :Odoo sync-core (nil = the service's)
+M.core_image = opt("core_image", nil) -- image for :Odoo sync-core (nil = the service's)
 
 -- Database for update/install/test/shell. nil = the "-d" of the service `command:` in the
 -- compose file. Change at runtime with :Odoo db
@@ -84,9 +86,9 @@ M.debug = vim.tbl_extend("force", {
 -- Container path -> local path, most specific first: { { remote = "/mnt/x", ["local"] = "~/x" } }
 -- Used by the debugger (breakpoints) and to open tracebacks from the Odoo log.
 -- nil = read the volumes of the odoo service from the compose file (+ the core copy).
-M.path_mappings = user.path_mappings and vim.tbl_map(function(m)
-  return { remote = m.remote, ["local"] = ex(m["local"]) }
-end, user.path_mappings) or nil
+M.path_mappings = user.path_mappings
+    and vim.tbl_map(function(m) return { remote = m.remote, ["local"] = ex(m["local"]) } end, user.path_mappings)
+  or nil
 
 M.web_url = opt("web_url", "http://localhost:8069")
 

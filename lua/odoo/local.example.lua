@@ -32,8 +32,8 @@ return {
 
   -- ---------------------------------------------------------------- docker
   compose_dir = root .. "/docker", -- folder with docker-compose.yml
-  service = "odoo",                -- odoo service name
-  db_service = "db",               -- postgres service name
+  service = "odoo", -- odoo service name
+  db_service = "db", -- postgres service name
   -- odoo_conf = "/etc/odoo/odoo.conf",
   -- db_user = "odoo",
   -- db = "mydb",                  -- default: the -d in the compose `command:`

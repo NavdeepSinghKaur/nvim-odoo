@@ -150,8 +150,10 @@ function M.test(module, tag)
       for _, l in ipairs(lines) do
         if l:match("^FAIL:") or l:match("^ERROR:") or l:match(" ERROR .*odoo%.tests") then failed = true end
       end
-      vim.notify((failed and "✘ Tests FAILED" or "✔ Tests passed") .. (summary and ("\n" .. summary) or ""),
-        failed and vim.log.levels.ERROR or vim.log.levels.INFO)
+      vim.notify(
+        (failed and "✘ Tests FAILED" or "✔ Tests passed") .. (summary and ("\n" .. summary) or ""),
+        failed and vim.log.levels.ERROR or vim.log.levels.INFO
+      )
     end,
   })
 end
@@ -195,19 +197,32 @@ function M.psql() term(compose({ "exec", S.db_service, "psql", "-U", S.db_user, 
 function M.bash() term(compose({ "exec", S.service, "bash" }), "container bash") end
 
 function M.pick_db()
-  local ok, out = sys(compose({ "exec", "-T", S.db_service, "psql", "-U", S.db_user, "-d", "postgres", "-Atc",
-    "select datname from pg_database where not datistemplate and datname <> 'postgres' order by 1" }))
+  local ok, out = sys(compose({
+    "exec",
+    "-T",
+    S.db_service,
+    "psql",
+    "-U",
+    S.db_user,
+    "-d",
+    "postgres",
+    "-Atc",
+    "select datname from pg_database where not datistemplate and datname <> 'postgres' order by 1",
+  }))
   if not ok then
     vim.notify("Is the db container running? (" .. out .. ")", vim.log.levels.ERROR)
     return
   end
-  vim.ui.select(vim.split(out, "\n", { trimempty = true }), { prompt = "Database (now: " .. M.db() .. ")" },
+  vim.ui.select(
+    vim.split(out, "\n", { trimempty = true }),
+    { prompt = "Database (now: " .. M.db() .. ")" },
     function(choice)
       if choice then
         M.state.db = choice
         vim.notify("Odoo DB for nvim commands: " .. choice)
       end
-    end)
+    end
+  )
 end
 
 -- ------------------------------------------------------------------ debug mode

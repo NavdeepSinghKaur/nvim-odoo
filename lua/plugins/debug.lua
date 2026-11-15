@@ -22,7 +22,10 @@ return {
       local pb = function() return require("persistent-breakpoints.api") end
       local function start_or_continue()
         if dap().session() then return dap().continue() end
-        if require("odoo").is_odoo_file(vim.api.nvim_buf_get_name(0)) or vim.fn.getcwd():find(require("odoo").settings.root, 1, true) then
+        if
+          require("odoo").is_odoo_file(vim.api.nvim_buf_get_name(0))
+          or vim.fn.getcwd():find(require("odoo").settings.root, 1, true)
+        then
           return require("odoo").debug()
         end
         dap().continue() -- pick a configuration (e.g. "file" for a plain Python script)
@@ -53,14 +56,27 @@ return {
         { "<leader>da", function() require("odoo").attach() end, desc = "Attach to Odoo (already in debug mode)" },
         { "<leader>dr", function() require("dapui").toggle({ reset = true }) end, desc = "Toggle debug panels" },
         { "<leader>dR", function() dap().repl.toggle() end, desc = "REPL (evaluate code)" },
-        { "<leader>de", function() require("dapui").eval(nil, { enter = true }) end, desc = "Evaluate expression", mode = { "n", "x" } },
+        {
+          "<leader>de",
+          function() require("dapui").eval(nil, { enter = true }) end,
+          desc = "Evaluate expression",
+          mode = { "n", "x" },
+        },
         { "<leader>dh", function() require("dap.ui.widgets").hover() end, desc = "Value under cursor" },
-        { "<leader>dw", function() require("dapui").elements.watches.add(vim.fn.expand("<cexpr>")) end, desc = "Watch expression" },
-        { "<leader>dE", function()
-          vim.g.dap_break_raised = not vim.g.dap_break_raised
-          dap().set_exception_breakpoints(vim.g.dap_break_raised and { "raised", "uncaught" } or {})
-          vim.notify("Break on raised exceptions: " .. (vim.g.dap_break_raised and "ON" or "OFF"))
-        end, desc = "Toggle break on exceptions" },
+        {
+          "<leader>dw",
+          function() require("dapui").elements.watches.add(vim.fn.expand("<cexpr>")) end,
+          desc = "Watch expression",
+        },
+        {
+          "<leader>dE",
+          function()
+            vim.g.dap_break_raised = not vim.g.dap_break_raised
+            dap().set_exception_breakpoints(vim.g.dap_break_raised and { "raised", "uncaught" } or {})
+            vim.notify("Break on raised exceptions: " .. (vim.g.dap_break_raised and "ON" or "OFF"))
+          end,
+          desc = "Toggle break on exceptions",
+        },
       }
     end,
     config = function()
@@ -77,10 +93,16 @@ return {
 
       dapui.setup({
         layouts = {
-          { position = "left", size = 50, elements = {
-            { id = "scopes", size = 0.5 }, { id = "watches", size = 0.15 },
-            { id = "stacks", size = 0.25 }, { id = "breakpoints", size = 0.1 },
-          } },
+          {
+            position = "left",
+            size = 50,
+            elements = {
+              { id = "scopes", size = 0.5 },
+              { id = "watches", size = 0.15 },
+              { id = "stacks", size = 0.25 },
+              { id = "breakpoints", size = 0.1 },
+            },
+          },
           { position = "bottom", size = 12, elements = { { id = "repl", size = 1 } } },
         },
         floating = { border = "rounded" },
@@ -94,7 +116,12 @@ return {
       dap.listeners.before.event_exited["dapui"] = function() dapui.close() end
       dap.listeners.before.disconnect["dapui"] = function() dapui.close() end
 
-      local sign = function(name, text, hl) vim.fn.sign_define(name, { text = text, texthl = hl, linehl = name == "DapStopped" and "Visual" or "", numhl = "" }) end
+      local sign = function(name, text, hl)
+        vim.fn.sign_define(
+          name,
+          { text = text, texthl = hl, linehl = name == "DapStopped" and "Visual" or "", numhl = "" }
+        )
+      end
       sign("DapBreakpoint", "●", "DiagnosticError")
       sign("DapBreakpointCondition", "◆", "DiagnosticWarn")
       sign("DapLogPoint", "◉", "DiagnosticInfo")
