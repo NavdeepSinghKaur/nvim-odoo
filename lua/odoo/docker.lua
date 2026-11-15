@@ -1,271 +1,169 @@
--- Talks to the Odoo container through `docker compose` (run in settings.compose_dir).
-local S = require("odoo.settings")
+-- Odoo actions in the editor: runs the commands of lua/odoo/compose.lua in the log panel
+-- (or a terminal for the interactive ones) and tells you how they ended.
+local settings = require("odoo.settings")
+local compose = require("odoo.compose")
 local log = require("odoo.log")
 local M = {}
 
-M.state = { db = nil } -- runtime choices (:Odoo db)
+-- What the compose file says (kept here so callers need one module for "docker things").
+M.state = compose.state
+M.compose_file = compose.compose_file
+M.service_config = compose.service_config
+M.compose_command = compose.command
+M.container = compose.container
+M.db = compose.db
+M.status = compose.status
+M.debug_override_file = compose.debug_override_file
 
-local function compose(args) return vim.list_extend({ "docker", "compose" }, args) end
-
-local function sys(cmd, opts)
-  local r = vim.system(cmd, vim.tbl_extend("force", { text = true, cwd = S.compose_dir }, opts or {})):wait()
-  return r.code == 0, vim.trim(r.stdout or ""), vim.trim(r.stderr or "")
+--- Run a compose command in the log panel.
+---@param title string
+---@param cmd string[]
+---@param opts? { on_exit?: fun(code: integer, lines: string[]), quickfix?: boolean, max_lines?: integer }
+local function run(title, cmd, opts)
+  return log.run(vim.tbl_extend("force", { title = title, cmd = cmd, cwd = settings.compose_dir }, opts or {}))
 end
 
--- The compose file in settings.compose_dir (nil if there is none)
-function M.compose_file()
-  for _, name in ipairs({ "compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml" }) do
-    if vim.uv.fs_stat(S.compose_dir .. "/" .. name) then return name end
-  end
-end
-
--- The odoo service as docker compose sees it: { command = {...}, volumes = {...}, image = "..." }
-local service_cache
-function M.service_config()
-  if service_cache then return service_cache end
-  if not M.compose_file() then return {} end
-  local ok, out = sys(compose({ "config", "--format", "json" }))
-  if ok then
-    local okj, cfg = pcall(vim.json.decode, out, { luanil = { object = true, array = true } })
-    if okj and cfg.services and cfg.services[S.service] then service_cache = cfg.services[S.service] end
-  end
-  return service_cache or {}
-end
-
--- The service `command:`, e.g. { "odoo", "-c", "/etc/odoo/odoo.conf", "-d", "mydb" }
-function M.compose_command() return M.service_config().command end
-
--- Container name/id of the odoo service
-function M.container()
-  if S.container then return S.container end
-  local ok, out = sys(compose({ "ps", "-aq", S.service }))
-  local id = ok and vim.split(out, "\n")[1] or ""
-  return id ~= "" and id or (S.service .. " (not created)")
-end
-
-function M.db()
-  if M.state.db then return M.state.db end
-  if S.db then return S.db end
-  local cmd = M.compose_command() or {}
-  for i, a in ipairs(cmd) do
-    if a == "-d" or a == "--database" then return cmd[i + 1] end
-    local v = a:match("^%-%-database=(.+)") or a:match("^%-d(.+)")
-    if v then return v end
-  end
-  return "odoo"
-end
-
---- { exists, running, debug }
-function M.status()
-  local ok, out = sys({ "docker", "inspect", "-f", "{{.State.Running}}|{{json .Config.Cmd}}", M.container() })
-  if not ok then return { exists = false, running = false, debug = false } end
-  local running, cmd = out:match("^(%a+)|(.*)$")
-  return { exists = true, running = running == "true", debug = (cmd or ""):find("debugpy", 1, true) ~= nil }
-end
-
--- ------------------------------------------------------------------ one-off odoo commands
-local function odoo_oneoff(extra)
-  local cmd = compose({ "exec", "-T", S.service, "odoo", "-c", S.odoo_conf, "-d", M.db() })
-  vim.list_extend(cmd, extra)
-  vim.list_extend(cmd, S.oneoff_args)
-  return cmd
-end
+--- Run a command whose output has no tracebacks worth collecting (start, stop, logs...).
+local function run_plain(title, cmd, on_exit) return run(title, cmd, { quickfix = false, on_exit = on_exit }) end
 
 --- Restart the server. If the debugger was attached, it re-attaches by itself.
-function M.restart(cb)
+---@param on_done? fun(code: integer)
+function M.restart(on_done)
   local was_debugging = package.loaded["dap"] and require("dap").session() ~= nil
-  log.run({
-    title = "restart",
-    cmd = compose({ "restart", S.service }),
-    cwd = S.compose_dir,
-    quickfix = false,
-    on_exit = function(code)
-      if code == 0 then
-        vim.notify("Odoo restarted")
-        if was_debugging then
-          vim.notify("Re-attaching debugger…")
-          M.wait_debugpy(function() require("odoo").attach() end)
-        end
+  run_plain("restart", compose.argv.restart(), function(code)
+    if code == 0 then
+      vim.notify("Odoo restarted")
+      if was_debugging then
+        vim.notify("Re-attaching debugger…")
+        M.wait_debugpy(function() require("odoo").attach() end)
       end
-      if cb then cb(code) end
+    end
+    if on_done then on_done(code) end
+  end)
+end
+
+--- Save everything, run an update or install of `module`, then report and maybe restart.
+---@param action "update"|"install"
+---@param module string
+---@param restart boolean reload Python code in the server afterwards
+local function change_module(action, module, restart)
+  local done = action == "update" and "Updated " or "Installed "
+  vim.cmd("silent! wall")
+  run(action .. " " .. module, compose.argv[action](module), {
+    on_exit = function(code)
+      if code ~= 0 then
+        local failed = (action == "update" and "Update of " or "Install of ") .. module .. " FAILED"
+        vim.notify(failed .. " (see panel / <Space>xq)", vim.log.levels.ERROR)
+      elseif restart then
+        vim.notify(done .. module .. ", restarting server…")
+        M.restart()
+      else
+        vim.notify(done .. module .. " ✔")
+      end
     end,
   })
 end
 
 --- -u module (applies XML/data/fields). restart=true also reloads Python code in the server.
-function M.update(module, restart)
-  vim.cmd("silent! wall")
-  log.run({
-    title = "update " .. module,
-    cmd = odoo_oneoff({ "-u", module, "--stop-after-init" }),
-    cwd = S.compose_dir,
-    on_exit = function(code)
-      if code ~= 0 then
-        vim.notify("Update of " .. module .. " FAILED (see panel / <Space>xq)", vim.log.levels.ERROR)
-      elseif restart then
-        vim.notify("Updated " .. module .. ", restarting server…")
-        M.restart()
-      else
-        vim.notify("Updated " .. module .. " ✔")
-      end
-    end,
-  })
-end
+---@param module string
+---@param restart boolean
+function M.update(module, restart) change_module("update", module, restart) end
 
-function M.install(module)
-  vim.cmd("silent! wall")
-  log.run({
-    title = "install " .. module,
-    cmd = odoo_oneoff({ "-i", module, "--stop-after-init" }),
-    cwd = S.compose_dir,
-    on_exit = function(code)
-      if code == 0 then
-        vim.notify("Installed " .. module .. ", restarting server…")
-        M.restart()
-      else
-        vim.notify("Install of " .. module .. " FAILED", vim.log.levels.ERROR)
-      end
-    end,
-  })
-end
+---@param module string
+function M.install(module) change_module("install", module, true) end
 
 --- tag examples: "/my_module"  "/my_module:TestFoo"  "/my_module:TestFoo.test_bar"
+---@param module string
+---@param tag? string
 function M.test(module, tag)
   vim.cmd("silent! wall")
   tag = tag or ("/" .. module)
-  log.run({
-    title = "test " .. tag,
-    cmd = odoo_oneoff({ "-u", module, "--test-enable", "--test-tags", tag, "--log-level=test", "--stop-after-init" }),
-    cwd = S.compose_dir,
+  run("test " .. tag, compose.argv.test(module, tag), {
     on_exit = function(code, lines)
-      local summary
-      for i = #lines, 1, -1 do
-        local l = lines[i]
-        if l:match("failed, %d+ error") or l:match("tests? in") then
-          summary = l:gsub("^.-: ", "")
-          break
-        end
-      end
-      local failed = code ~= 0
-      for _, l in ipairs(lines) do
-        if l:match("^FAIL:") or l:match("^ERROR:") or l:match(" ERROR .*odoo%.tests") then failed = true end
-      end
-      vim.notify((failed and "✘ Tests FAILED" or "✔ Tests passed") .. (summary and ("\n" .. summary) or ""),
-        failed and vim.log.levels.ERROR or vim.log.levels.INFO)
+      local result = require("odoo.tests").result(code, lines)
+      local message = (result.failed and "✘ Tests FAILED" or "✔ Tests passed")
+        .. (result.summary and ("\n" .. result.summary) or "")
+      vim.notify(message, result.failed and vim.log.levels.ERROR or vim.log.levels.INFO)
     end,
   })
 end
 
-function M.logs()
-  log.run({
-    title = "logs",
-    cmd = compose({ "logs", "-f", "--tail=300", S.service }),
-    cwd = S.compose_dir,
-    quickfix = false,
-  })
+-- A followed log never ends: keep the panel (and memory) bounded.
+local FOLLOWED_LOG_LINES = 20000
+
+function M.logs() run("logs", compose.argv.logs(), { quickfix = false, max_lines = FOLLOWED_LOG_LINES }) end
+
+---@param on_done? fun(code: integer)
+function M.up(on_done)
+  run_plain("start", compose.argv.up(), function(code)
+    compose.forget_container() -- `up` may have recreated it
+    if code == 0 then vim.notify("Odoo running (normal mode) → " .. settings.web_url) end
+    if on_done then on_done(code) end
+  end)
 end
 
-function M.up(cb)
-  log.run({
-    title = "start",
-    cmd = compose({ "up", "-d", S.service }),
-    cwd = S.compose_dir,
-    quickfix = false,
-    on_exit = function(code)
-      if code == 0 then vim.notify("Odoo running (normal mode) → " .. S.web_url) end
-      if cb then cb(code) end
-    end,
-  })
+function M.stop() run_plain("stop", compose.argv.stop()) end
+
+--- Interactive things open in a terminal.
+---@param cmd string[]
+---@param title string
+local function terminal(cmd, title)
+  Snacks.terminal(cmd, { cwd = settings.compose_dir, win = { position = "bottom", height = 0.4, title = title } })
 end
 
-function M.stop()
-  log.run({ title = "stop", cmd = compose({ "stop", S.service }), cwd = S.compose_dir, quickfix = false })
-end
+function M.shell() terminal(compose.argv.shell(), "odoo shell") end
+function M.psql() terminal(compose.argv.psql(), "psql") end
+function M.bash() terminal(compose.argv.bash(), "container bash") end
 
--- Interactive things open in a terminal
-local function term(cmd, title)
-  Snacks.terminal(cmd, { cwd = S.compose_dir, win = { position = "bottom", height = 0.4, title = title } })
-end
-
-function M.shell()
-  local cmd = compose({ "exec", S.service, "odoo", "shell", "-c", S.odoo_conf, "-d", M.db(), "--no-http" })
-  term(vim.list_extend(cmd, S.oneoff_args), "odoo shell")
-end
-function M.psql() term(compose({ "exec", S.db_service, "psql", "-U", S.db_user, "-d", M.db() }), "psql") end
-function M.bash() term(compose({ "exec", S.service, "bash" }), "container bash") end
-
+--- Choose the database the commands above work on.
 function M.pick_db()
-  local ok, out = sys(compose({ "exec", "-T", S.db_service, "psql", "-U", S.db_user, "-d", "postgres", "-Atc",
-    "select datname from pg_database where not datistemplate and datname <> 'postgres' order by 1" }))
-  if not ok then
-    vim.notify("Is the db container running? (" .. out .. ")", vim.log.levels.ERROR)
+  local names, err = compose.databases()
+  if not names then
+    vim.notify("Is the db container running? (" .. err .. ")", vim.log.levels.ERROR)
     return
   end
-  vim.ui.select(vim.split(out, "\n", { trimempty = true }), { prompt = "Database (now: " .. M.db() .. ")" },
-    function(choice)
-      if choice then
-        M.state.db = choice
-        vim.notify("Odoo DB for nvim commands: " .. choice)
-      end
-    end)
+  vim.ui.select(names, { prompt = "Database (now: " .. compose.db() .. ")" }, function(choice)
+    if choice then
+      compose.state.db = choice
+      vim.notify("Odoo DB for nvim commands: " .. choice)
+    end
+  end)
 end
 
--- ------------------------------------------------------------------ debug mode
--- Debug mode = the same command as docker-compose.yml, but started through debugpy, using an
--- override file generated in nvim's state dir. `:Odoo start` goes back to normal mode.
-function M.debug_override_file()
-  local cmd = vim.deepcopy(M.compose_command() or {})
-  if cmd[1] == "odoo" or cmd[1] == S.odoo_bin then table.remove(cmd, 1) end
-  local full = { "python3", "-m", "debugpy", "--listen", "0.0.0.0:" .. S.debug.port, S.odoo_bin }
-  vim.list_extend(full, cmd)
-  vim.list_extend(full, S.debug.extra_args)
-  local dir = vim.fn.stdpath("state") .. "/odoo"
-  vim.fn.mkdir(dir, "p")
-  local file = dir .. "/docker-compose.debug.yml"
-  vim.fn.writefile({
-    "# Generated by nvim (lua/odoo/docker.lua). Do not edit: it is rewritten on every :Odoo debug",
-    "services:",
-    "  " .. S.service .. ":",
-    "    command: " .. vim.json.encode(full),
-  }, file)
-  return file
-end
-
---- Calls cb() once debugpy accepts connections inside the container.
-function M.wait_debugpy(cb, tries)
+--- Calls on_ready() once debugpy accepts connections inside the container.
+---@param on_ready fun()
+---@param tries? integer seconds left to wait (default 90)
+function M.wait_debugpy(on_ready, tries)
   tries = tries or 90
-  -- Don't connect to the port to test it: debugpy takes the first connection as its client and
-  -- then ignores the real one. Instead look for a LISTEN socket on the port in /proc/net/tcp.
-  local probe = ("grep -q ':%04X 00000000:0000 0A' /proc/net/tcp /proc/net/tcp6"):format(S.debug.port)
-  vim.system({ "docker", "exec", M.container(), "sh", "-c", probe }, {}, function(r)
+  local function retry()
+    if tries > 0 then
+      vim.defer_fn(function() M.wait_debugpy(on_ready, tries - 1) end, 1000)
+    else
+      vim.notify("debugpy did not start, check :Odoo logs", vim.log.levels.ERROR)
+    end
+  end
+  local probe = compose.argv.debugpy_probe()
+  if not probe then return retry() end -- the container is still being created
+  vim.system(probe, {}, function(result)
     vim.schedule(function()
-      if r.code == 0 then
-        cb()
-      elseif tries > 0 then
-        vim.defer_fn(function() M.wait_debugpy(cb, tries - 1) end, 1000)
-      else
-        vim.notify("debugpy did not start, check :Odoo logs", vim.log.levels.ERROR)
-      end
+      if result.code == 0 then return on_ready() end
+      retry()
     end)
   end)
 end
 
-function M.debug_up(cb)
-  local file = M.debug_override_file()
+--- Restart Odoo under debugpy, then call on_ready() when the debugger can attach.
+---@param on_ready fun()
+function M.debug_up(on_ready)
   vim.notify("Restarting Odoo in DEBUG mode…")
-  log.run({
-    title = "start debug",
-    cmd = compose({ "-f", M.compose_file() or "docker-compose.yml", "-f", file, "up", "-d", S.service }),
-    cwd = S.compose_dir,
-    quickfix = false,
-    on_exit = function(code)
-      if code ~= 0 then
-        vim.notify("Could not start debug mode", vim.log.levels.ERROR)
-        return
-      end
-      M.wait_debugpy(cb)
-    end,
-  })
+  run_plain("start debug", compose.argv.debug_up(compose.debug_override_file()), function(code)
+    compose.forget_container() -- the changed command recreates it
+    if code ~= 0 then
+      vim.notify("Could not start debug mode", vim.log.levels.ERROR)
+      return
+    end
+    M.wait_debugpy(on_ready)
+  end)
 end
 
 return M

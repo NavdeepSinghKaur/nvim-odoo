@@ -22,12 +22,9 @@ return {
     dependencies = { "mason-org/mason.nvim" },
     event = "VeryLazy",
     opts = {
-      ensure_installed = {
-        "basedpyright", "ruff", "lemminx", "lua-language-server", "json-lsp",
-        "yaml-language-server", "css-lsp", "typescript-language-server",
-        "black", "stylua", "debugpy",
-      },
+      ensure_installed = require("config.tools").mason,
       run_on_start = true,
+      debounce_hours = 24, -- look for missing tools once a day, not at every start
     },
   },
 
@@ -43,12 +40,17 @@ return {
       -- messages while indexing, which starves Neovim's screen updates for ~30 s.
       -- Core / OCA files you open still use the same server (one client for every buffer).
       vim.lsp.config("odoo_ls", {
-        -- through a small proxy that drops the flood of empty diagnostics (see odoo/odoo_ls_proxy.py)
+        -- through a small proxy that drops the flood of empty diagnostics (see scripts/odoo_ls_proxy.py)
         cmd = function(dispatchers, config)
-          local S = require("odoo.settings")
+          local settings = require("odoo.settings")
           local cmd = {
-            "python3", vim.fn.stdpath("config") .. "/odoo/odoo_ls_proxy.py",
-            S.odoo_ls_cmd, "--log-level", "info", "--config-path", require("odoo.odools").path(),
+            "python3",
+            vim.fn.stdpath("config") .. "/scripts/odoo_ls_proxy.py",
+            settings.odoo_ls_cmd,
+            "--log-level",
+            "info",
+            "--config-path",
+            require("odoo.odools").path(),
           }
           return vim.lsp.rpc.start(cmd, dispatchers, { cwd = config.root_dir })
         end,
@@ -131,7 +133,7 @@ return {
               ["line-length"] = 100,
               lint = {
                 select = { "E", "F", "W", "B" }, -- ≈ flake8 + flake8-bugbear like pre-commit
-                ignore = { "E203", "E501" },     -- black handles line length
+                ignore = { "E203", "E501" }, -- black handles line length
                 ["per-file-ignores"] = { ["__init__.py"] = { "F401" }, ["__manifest__.py"] = { "B018" } },
               },
             },
@@ -143,8 +145,15 @@ return {
       vim.lsp.config("lemminx", {
         settings = {
           xml = {
-            format = { enabled = true, splitAttributes = "preserve", maxLineWidth = 0, preserveEmptyContent = true,
-              insertSpaces = true, tabSize = 4, preservedNewlines = 2 },
+            format = {
+              enabled = true,
+              splitAttributes = "preserve",
+              maxLineWidth = 0,
+              preserveEmptyContent = true,
+              insertSpaces = true,
+              tabSize = 4,
+              preservedNewlines = 2,
+            },
             completion = { autoCloseTags = true },
             validation = { noGrammar = "ignore" }, -- Odoo XML has no DTD/XSD
           },
@@ -152,7 +161,10 @@ return {
       })
 
       -- ---------------------------------------------------------- JS (outside Odoo; odoo_ls does Odoo JS)
-      vim.lsp.config("ts_ls", { root_dir = not_odoo_root({ "package.json", "tsconfig.json", "jsconfig.json", ".git" }) })
+      vim.lsp.config(
+        "ts_ls",
+        { root_dir = not_odoo_root({ "package.json", "tsconfig.json", "jsconfig.json", ".git" }) }
+      )
 
       vim.lsp.config("lua_ls", {
         settings = { Lua = { workspace = { checkThirdParty = false }, completion = { callSnippet = "Replace" } } },
@@ -187,9 +199,16 @@ return {
           map("<leader>cs", function() Snacks.picker.lsp_symbols() end, "Symbols in file")
           map("<leader>cl", "<Cmd>checkhealth vim.lsp<CR>", "LSP info")
           map("<leader>cR", "<Cmd>lsp restart<CR>", "Restart language servers")
-          map("<leader>co", function()
-            vim.lsp.buf.code_action({ apply = true, context = { only = { "source.organizeImports" }, diagnostics = {} } })
-          end, "Organize imports")
+          map(
+            "<leader>co",
+            function()
+              vim.lsp.buf.code_action({
+                apply = true,
+                context = { only = { "source.organizeImports" }, diagnostics = {} },
+              })
+            end,
+            "Organize imports"
+          )
         end,
       })
     end,

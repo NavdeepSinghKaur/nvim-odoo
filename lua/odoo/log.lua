@@ -8,43 +8,16 @@ local M = {}
 local ns = vim.api.nvim_create_namespace("odoo_log")
 M.jobs = {} -- title -> job id (running)
 
-local function paths() return require("odoo.paths") end
+local traceback = require("odoo.traceback")
 
--- Find a "file:line" reference in a log line. Returns local_path, lnum or nil.
-function M.parse_location(line)
-  local file, lnum = line:match('File "([^"]+)", line (%d+)')
-  if not file then file, lnum = line:match("while parsing ([^%s:]+%.xml):(%d+)") end
-  if not file then file, lnum = line:match("(/[%w_%-%./]+%.%a+):(%d+)") end
-  if not file then
-    file = line:match("(/mnt/[%w_%-%./]+%.%a+)") or line:match("(/usr/lib/python3/dist%-packages/odoo/[%w_%-%./]+%.%a+)")
-    lnum = 1
-  end
-  if not file then return nil end
-  local localf = paths().to_local(file)
-  if vim.fn.filereadable(localf) == 1 then return localf, tonumber(lnum) end
-  return nil
-end
-
--- Build quickfix items from log lines: every readable traceback frame + error lines.
-function M.to_qf(lines)
-  local items, own_first = {}, {}
-  for i, line in ipairs(lines) do
-    local f, l = M.parse_location(line)
-    if f then
-      local nxt = lines[i + 1] and vim.trim(lines[i + 1]) or ""
-      local item = { filename = f, lnum = l, text = vim.trim(line:gsub("^.-line %d+,?%s*", "")) .. "  │ " .. nxt }
-      if paths().is_own(f) then table.insert(own_first, item) else table.insert(items, item) end
-    elseif line:match(" ERROR ") or line:match(" CRITICAL ") or line:match("^FAIL:") or line:match("^ERROR:") then
-      table.insert(items, { text = line })
-    end
-  end
-  -- Your own code first: that's usually where the bug is.
-  return vim.list_extend(own_first, items)
-end
+M.parse_location = traceback.parse_location
+M.to_qf = traceback.to_qf
 
 local function highlight(buf)
-  vim.api.nvim_buf_call(buf, function()
-    vim.cmd([[
+  vim.api.nvim_buf_call(
+    buf,
+    function()
+      vim.cmd([[
       syntax clear
       syntax match OdooLogError /\v<(ERROR|CRITICAL)>.*/
       syntax match OdooLogError /\v^(FAIL|ERROR):.*/
@@ -58,7 +31,8 @@ local function highlight(buf)
       syntax match OdooLogCmd   /\v^\$ .*/
       syntax match OdooLogDate  /\v^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d+/
     ]])
-  end)
+    end
+  )
   vim.api.nvim_set_hl(0, "OdooLogError", { link = "DiagnosticError", default = true })
   vim.api.nvim_set_hl(0, "OdooLogWarn", { link = "DiagnosticWarn", default = true })
   vim.api.nvim_set_hl(0, "OdooLogInfo", { link = "DiagnosticInfo", default = true })
@@ -134,12 +108,27 @@ end
 
 function M.running()
   local t = {}
-  for title in pairs(M.jobs) do table.insert(t, title) end
+  for title in pairs(M.jobs) do
+    table.insert(t, title)
+  end
   return t
 end
 
+-- Output is written to the panel in batches: a busy server prints hundreds of lines per second
+-- and one buffer update per line makes the editor stutter.
+local FLUSH_MS = 50
+
+---@class OdooLogRun
+---@field title string panel name, also the job key (a second run with the same title replaces the first)
+---@field cmd string[]
+---@field cwd? string
+---@field on_exit? fun(code: integer, lines: string[])
+---@field quickfix? boolean put traceback locations in the quickfix list when it ends (default true)
+---@field max_lines? integer keep only the last N lines (for output that never ends, like `logs -f`)
+
 --- Run a command and stream its output into the panel.
---- opts = { title, cmd (list), cwd, on_exit(code, lines), quickfix (bool, default true) }
+---@param opts OdooLogRun
+---@return integer? job id
 function M.run(opts)
   local title = opts.title
   if M.jobs[title] then M.stop(title) end
@@ -148,46 +137,59 @@ function M.run(opts)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "$ " .. table.concat(opts.cmd, " "), "" })
   vim.bo[buf].modifiable = false
   local win = show(buf)
-  local all, partial = {}, { "" }
+  local all, partial, pending, flush_planned = {}, "", {}, false
 
+  --- Write the waiting lines to the panel and keep the view at the end if it was there.
+  local function flush()
+    flush_planned = false
+    local lines = pending
+    pending = {}
+    if #lines == 0 or not vim.api.nvim_buf_is_valid(buf) then return end
+    local shown = win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf
+    local follow = true
+    if shown and vim.api.nvim_get_current_win() == win then
+      follow = vim.api.nvim_win_get_cursor(win)[1] >= vim.api.nvim_buf_line_count(buf) - 1
+    end
+    vim.bo[buf].modifiable = true
+    vim.api.nvim_buf_set_lines(buf, -1, -1, false, lines)
+    local extra = opts.max_lines and (vim.api.nvim_buf_line_count(buf) - opts.max_lines) or 0
+    if extra > 0 then vim.api.nvim_buf_set_lines(buf, 0, extra, false, {}) end
+    vim.bo[buf].modifiable = false
+    if follow and shown then vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(buf), 0 }) end
+  end
+
+  --- Take a chunk of job output (jobstart splits on \n; the last element is a partial line).
   local function append(data)
     if not data then return end
-    -- jobstart splits on \n; the last element is a partial line
-    data[1] = partial[1] .. data[1]
-    partial[1] = table.remove(data)
+    data[1] = partial .. data[1]
+    partial = table.remove(data)
     if #data == 0 then return end
-    for i, l in ipairs(data) do data[i] = l:gsub("\r", "") end
+    for i, line in ipairs(data) do
+      data[i] = line:gsub("\r", "")
+    end
     vim.list_extend(all, data)
-    vim.schedule(function()
-      if not vim.api.nvim_buf_is_valid(buf) then return end
-      local follow = true
-      if win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_get_current_win() == win then
-        follow = vim.api.nvim_win_get_cursor(win)[1] >= vim.api.nvim_buf_line_count(buf) - 1
-      end
-      vim.bo[buf].modifiable = true
-      vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-      vim.bo[buf].modifiable = false
-      if follow and win and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
-        vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(buf), 0 })
-      end
-    end)
+    if opts.max_lines and #all > 2 * opts.max_lines then all = vim.list_slice(all, #all - opts.max_lines + 1) end
+    vim.list_extend(pending, data)
+    if not flush_planned then
+      flush_planned = true
+      vim.defer_fn(flush, FLUSH_MS)
+    end
   end
 
   local id = vim.fn.jobstart(opts.cmd, {
     cwd = opts.cwd,
     stdout_buffered = false,
-    on_stdout = function(_, d) append(d) end,
-    on_stderr = function(_, d) append(d) end,
+    on_stdout = function(_, data) append(data) end,
+    on_stderr = function(_, data) append(data) end,
     on_exit = function(_, code)
       vim.schedule(function()
-        if partial[1] ~= "" then append({ "", "" }) end
+        if partial ~= "" then append({ "", "" }) end
+        table.insert(pending, "")
+        table.insert(pending, ("[exit code %d]"):format(code))
+        flush()
         M.jobs[title] = nil
-        if vim.api.nvim_buf_is_valid(buf) then
-          vim.bo[buf].modifiable = true
-          vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "", ("[exit code %d]"):format(code) })
-          vim.bo[buf].modifiable = false
-        end
         if opts.quickfix ~= false then
+          require("odoo.last_run").save(opts.cmd, all, code) -- for <Space>al and `odoo-nvim last`
           local qf = M.to_qf(all)
           vim.fn.setqflist({}, "r", { title = title, items = qf })
           if #qf > 0 then

@@ -14,10 +14,14 @@ return {
       { "<leader>e", "<Cmd>Neotree toggle<CR>", desc = "Explorer" },
       { "<C-b>", "<Cmd>Neotree toggle<CR>", desc = "Explorer" },
       { "<leader>E", "<Cmd>Neotree reveal<CR>", desc = "Show current file in explorer" },
-      { "<leader>fe", function()
-        local _, dir = require("odoo.paths").module_of()
-        vim.cmd("Neotree dir=" .. vim.fn.fnameescape(dir or vim.fn.getcwd()))
-      end, desc = "Explorer at current module" },
+      {
+        "<leader>fe",
+        function()
+          local _, dir = require("odoo.paths").module_of()
+          vim.cmd("Neotree dir=" .. vim.fn.fnameescape(dir or vim.fn.getcwd()))
+        end,
+        desc = "Explorer at current module",
+      },
       { "<leader>ge", "<Cmd>Neotree git_status float<CR>", desc = "Changed files (git)" },
       { "<leader>be", "<Cmd>Neotree buffers float<CR>", desc = "Open files (tree)" },
     },

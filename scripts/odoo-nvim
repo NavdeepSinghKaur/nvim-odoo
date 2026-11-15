@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Odoo commands of this Neovim config from a terminal (for scripts and AI agents).
+# Runs scripts/cli.lua with Neovim as a plain Lua interpreter: no plugins, no UI.
+#   odoo-nvim help
+set -euo pipefail
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do # follow the ~/.local/bin/odoo-nvim link back to the config
+    dir="$(cd "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+done
+repo="$(cd "$(dirname "$src")/.." && pwd)"
+exec nvim -u NONE -i NONE -n -l "$repo/scripts/cli.lua" "$@"

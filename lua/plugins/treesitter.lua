@@ -4,11 +4,7 @@
 --   (any operator works: dif = delete function body, yac = copy class, cia = change argument)
 --   ]f [f next/prev function    ]c [c next/prev class
 --   The statusline shows which class/method you are in (<Space>uc: sticky header at the top).
-local parsers = {
-  "python", "xml", "html", "javascript", "typescript", "css", "scss", "json", "yaml", "toml",
-  "lua", "luadoc", "vim", "vimdoc", "query", "markdown", "markdown_inline", "bash", "sql", "csv",
-  "po", "rst", "regex", "diff", "gitcommit", "git_rebase", "gitignore", "dockerfile", "ini",
-}
+local parsers = require("config.tools").parsers
 
 return {
   {
@@ -50,7 +46,10 @@ return {
         custom_textobjects = {
           f = ts({ a = "@function.outer", i = "@function.inner" }),
           c = ts({ a = "@class.outer", i = "@class.inner" }),
-          o = ts({ a = { "@block.outer", "@conditional.outer", "@loop.outer" }, i = { "@block.inner", "@conditional.inner", "@loop.inner" } }),
+          o = ts({
+            a = { "@block.outer", "@conditional.outer", "@loop.outer" },
+            i = { "@block.inner", "@conditional.inner", "@loop.inner" },
+          }),
         },
       }
     end,

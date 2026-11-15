@@ -1,2 +1,6 @@
-# your own paths / docker names (created by :Odoo config)
+# your own paths / docker names (created by :Odoo setup or :Odoo config)
 lua/odoo/local.lua
+
+# test dependencies and tool caches (make test / make typecheck)
+deps/
+.cache/

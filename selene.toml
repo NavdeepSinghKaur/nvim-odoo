@@ -1,0 +1,5 @@
+std = "vim"
+
+[lints]
+mixed_table = "allow" # lazy.nvim plugin specs are { "author/repo", key = value }
+multiple_statements = "allow" # StyLua collapses simple functions to one line (stylua.toml)

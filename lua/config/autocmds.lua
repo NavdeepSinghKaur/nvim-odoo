@@ -72,7 +72,7 @@ au("BufReadPost", {
     local ok, odoo = pcall(require, "odoo")
     if ok and odoo.is_readonly_path(vim.api.nvim_buf_get_name(ev.buf)) then
       vim.bo[ev.buf].modifiable = true -- still allow temporary edits for experiments...
-      vim.bo[ev.buf].readonly = true   -- ...but warn before saving
+      vim.bo[ev.buf].readonly = true -- ...but warn before saving
     end
   end,
 })

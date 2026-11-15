@@ -1,0 +1,17 @@
+# selene standard library: Lua 5.1 (LuaJIT) plus the globals Neovim and this config provide.
+---
+base: lua51
+name: vim
+globals:
+  vim:
+    any: true
+  Snacks:
+    any: true
+  MiniTest:
+    any: true
+  jit:
+    any: true
+  io.stdout:
+    any: true
+  io.stderr:
+    any: true

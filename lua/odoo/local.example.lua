@@ -1,5 +1,6 @@
 -- ============================================================================
---  YOUR Odoo setup. Copy to lua/odoo/local.lua (or run :Odoo config) and edit.
+--  YOUR Odoo setup. :Odoo setup writes lua/odoo/local.lua for you from your project;
+--  or copy this file to lua/odoo/local.lua (:Odoo config does that) and edit it.
 --  local.lua is git-ignored. Every key is optional; defaults are in settings.lua.
 --  Restart nvim after editing.   Check the result with  :Odoo info
 -- ============================================================================
@@ -32,8 +33,8 @@ return {
 
   -- ---------------------------------------------------------------- docker
   compose_dir = root .. "/docker", -- folder with docker-compose.yml
-  service = "odoo",                -- odoo service name
-  db_service = "db",               -- postgres service name
+  service = "odoo", -- odoo service name
+  db_service = "db", -- postgres service name
   -- odoo_conf = "/etc/odoo/odoo.conf",
   -- db_user = "odoo",
   -- db = "mydb",                  -- default: the -d in the compose `command:`

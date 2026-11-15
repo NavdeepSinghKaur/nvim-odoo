@@ -16,7 +16,15 @@ return {
     "nvim-mini/mini.surround",
     event = "VeryLazy",
     opts = {
-      mappings = { add = "gsa", delete = "gsd", find = "gsf", find_left = "gsF", highlight = "gsh", replace = "gsr", update_n_lines = "gsn" },
+      mappings = {
+        add = "gsa",
+        delete = "gsd",
+        find = "gsf",
+        find_left = "gsF",
+        highlight = "gsh",
+        replace = "gsr",
+        update_n_lines = "gsn",
+      },
     },
   },
 
@@ -47,11 +55,20 @@ return {
     cmd = "GrugFar",
     opts = { headerMaxWidth = 80 },
     keys = {
-      { "<leader>sR", function() require("grug-far").open() end, desc = "Search & replace in files", mode = { "n", "x" } },
-      { "<leader>sM", function()
-        local _, dir = require("odoo.paths").module_of()
-        require("grug-far").open({ prefills = { paths = dir or vim.fn.getcwd() } })
-      end, desc = "Search & replace in this module" },
+      {
+        "<leader>sR",
+        function() require("grug-far").open() end,
+        desc = "Search & replace in files",
+        mode = { "n", "x" },
+      },
+      {
+        "<leader>sM",
+        function()
+          local _, dir = require("odoo.paths").module_of()
+          require("grug-far").open({ prefills = { paths = dir or vim.fn.getcwd() } })
+        end,
+        desc = "Search & replace in this module",
+      },
     },
   },
 
@@ -75,8 +92,12 @@ return {
     branch = "master",
     event = "VeryLazy",
     init = function()
-      vim.g.VM_maps = { ["Find Under"] = "<C-n>", ["Find Subword Under"] = "<C-n>",
-        ["Add Cursor Down"] = "<M-C-Down>", ["Add Cursor Up"] = "<M-C-Up>" }
+      vim.g.VM_maps = {
+        ["Find Under"] = "<C-n>",
+        ["Find Subword Under"] = "<C-n>",
+        ["Add Cursor Down"] = "<M-C-Down>",
+        ["Add Cursor Up"] = "<M-C-Up>",
+      }
       vim.g.VM_show_warnings = 0
     end,
   },

@@ -82,7 +82,8 @@ Objects: `w` word, `"` string, `(` brackets, `f` function, `c` class, `a` argume
 
 The module is detected from the file you're in (the folder with `__manifest__.py`).
 Commands run against the Odoo service of your `docker-compose.yml` and the database of its
-`command:` (`-d mydb`; change with `<Space>oD`). Your paths and names: **`:Odoo config`**, check with `<Space>o?`.
+`command:` (`-d mydb`; change with `<Space>oD`). Your paths and names: **`:Odoo setup`** detects them, `:Odoo config` edits them; check with `<Space>o?`
+or `:Odoo health`.
 
 ### Server / module
 | Keys | Action |
@@ -226,7 +227,9 @@ Surround: `gsa` + motion + char (e.g. `gsaiw"` puts quotes around a word) · `gs
 
 `uf` format on save · `ud` diagnostics · `uh` inlay hints · `un` relative numbers · `uw` wrap · `ub` git blame ·
 `uc` sticky class/def header (off by default: it makes fast scrolling laggy; the current class › method
-is always in the status bar) · `ug` indent guides · `uC` colorscheme · `uN` dismiss notifications.
+is always in the status bar) · `ug` indent guides · `uC` colorscheme · `uN` dismiss notifications ·
+`um` **minimap** on the right of each code window, like VSCode (colours, errors, git changes, search
+matches; click it to jump).
 
 ---
 
@@ -239,11 +242,29 @@ Needs the `claude` CLI. Claude opens in a panel on the right and sees the file /
 | `<Space>ac` | Open / close Claude · `Ctrl+,` or `<Space>af` jump to it |
 | `<Space>ab` | Give Claude the current file · in the explorer: `<Space>as` on a file |
 | `<Space>as` (visual) | Send the selected lines |
+| `<Space>al` | Give Claude the output of the last Odoo update / install / test (tracebacks with local paths) |
+| `<Space>ax` | Same, and types "find the cause and fix it" in Claude's prompt (you press Enter) |
 | `<Space>aa` / `<Space>ad` | Accept / reject the change Claude proposes (shown as a diff) |
 | `<Space>ar` / `<Space>aC` | Resume a past conversation / continue the last one |
 | `<Space>am` | Choose the model |
 
 In the Claude panel: `Esc Esc` or `Ctrl+\ Ctrl+n` leaves typing mode, then `Ctrl+h` goes back to the code.
+
+Claude also sees your diagnostics (errors and warnings) without you sending them. Files it edits
+reload by themselves; review everything it changed with `<Space>gd` (diff of all changes) and
+`]h` / `[h` + `<Space>gh…` on single hunks.
+
+**Let Claude update and test by itself.** `:Odoo ai-init` writes a short brief into the `AGENTS.md`
+/ `CLAUDE.md` of your addons repo: it tells any AI agent to use the `odoo-nvim` command, which
+folders are yours and which are read-only. In a terminal:
+
+```
+odoo-nvim update my_module          odoo-nvim test my_module
+odoo-nvim test /my_module:TestSale.test_confirm        odoo-nvim logs --tail 100
+odoo-nvim last                      odoo-nvim info        odoo-nvim doctor        odoo-nvim help
+```
+
+Each ends with `RESULT: ok` / `RESULT: failed ...` and lists the failing file:line of your code.
 
 ---
 
@@ -254,14 +275,17 @@ In the Claude panel: `Esc Esc` or `Ctrl+\ Ctrl+n` leaves typing mode, then `Ctrl
   init.lua                   entry point
   lua/config/                options, general keymaps, autocmds, plugin manager
   lua/plugins/               one file per topic (lsp, debug, git, ui, explorer, ai...)
-  lua/odoo/local.lua         ← YOUR paths, docker service, DB, debug port (:Odoo config). Git-ignored
+  lua/odoo/local.lua         ← YOUR paths, docker service, DB, debug port (:Odoo setup / config). Git-ignored
   lua/odoo/settings.lua      the defaults for everything local.lua does not set
   lua/odoo/*.lua             Odoo commands, pickers, output panel
-  odoo/odoo_ls_proxy.py      filter between nvim and odoo_ls (drops ~20 000 useless messages at startup)
+  scripts/odoo-nvim          the Odoo commands from a terminal (for scripts and AI agents)
+  scripts/install.sh         unattended install · scripts/install-odoo-ls.sh the language server
+  scripts/odoo_ls_proxy.py   filter between nvim and odoo_ls (drops ~20 000 useless messages at startup)
   snippets/*.json            Odoo snippets
 ~/.local/share/nvim/odoo-core/   default place of the Odoo source copied from the Docker image
                              (go-to-definition, browsing, debugging). Refresh: :Odoo sync-core
-~/.local/state/nvim/odoo/    generated files: odools.toml (odoo_ls config), docker-compose.debug.yml
+~/.local/state/nvim/odoo/    generated files: odools.toml (odoo_ls config), docker-compose.debug.yml,
+                             last-run.log (output of the last update / test)
 ```
 
 Language servers: **odoo_ls** (Odoo-aware Python/XML/JS, by Odoo SA) · ruff (lint: flake8 + bugbear
@@ -278,6 +302,8 @@ Debug mode writes a compose override to `~/.local/state/nvim/odoo/docker-compose
 | `gd` / hover do nothing right after opening | odoo_ls indexes for ~15 s at startup (progress in the status bar) |
 | odoo_ls doesn't see a new module / branch switch | it restarts by itself when the git commit changes; else `:OdooLs restart` |
 | Odoo commands use the wrong folder / container | `:Odoo config`, then restart nvim; `<Space>o?` shows what is used |
+| Is everything installed and configured? | `:Odoo health` (= `:checkhealth odoo`), or `odoo-nvim doctor` in a terminal |
+| A warning about `local.lua` at startup | it lists every unknown key, wrong type and missing folder: fix them in `:Odoo config` |
 | Anything odoo_ls | `:OdooLs health` · `:OdooLs logs` |
 | Which servers are attached? | `<Space>cl` (also shown in the status bar) |
 | Install/update servers & tools | `:Mason` |

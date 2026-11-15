@@ -1,8 +1,7 @@
 -- ============================================================================
 --  Neovim config for Odoo development
---  Lives in ~/odoo/nvim  (symlinked to ~/.config/nvim)
 --
---  Read README.md in this folder for the cheat sheet, or press <Space>? in nvim.
+--  README.md explains the setup; <Space>? in nvim opens the cheat sheet (CHEATSHEET.md).
 --  Press <Space> and wait: a menu shows every shortcut.
 -- ============================================================================
 

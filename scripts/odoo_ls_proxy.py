@@ -12,37 +12,43 @@ had problems are all forwarded.
 
 Usage (see lua/plugins/lsp.lua):  python3 odoo_ls_proxy.py odoo_ls_server [server args...]
 """
+
+import io
 import json
 import subprocess
 import sys
 import threading
 
-HEADER_END = b"\r\n\r\n"
-
 
 def read_message(stream):
-    """Read one LSP frame. Returns (raw_frame_bytes, body_bytes) or (None, None) at EOF."""
+    """Read one LSP frame. Returns (raw_frame_bytes, body_bytes) or (None, None) at EOF.
+
+    `stream` must be buffered: the header is read line by line.
+    """
     header = b""
-    while not header.endswith(HEADER_END):
-        ch = stream.read(1)
-        if not ch:
-            return None, None
-        header += ch
     length = 0
-    for line in header.split(b"\r\n"):
+    while True:
+        line = stream.readline()
+        if not line:
+            return None, None
+        header += line
+        if line == b"\r\n":
+            break
         if line.lower().startswith(b"content-length:"):
             length = int(line.split(b":", 1)[1].strip())
-    body = b""
-    while len(body) < length:
-        chunk = stream.read(length - len(body))
-        if not chunk:
-            return None, None
-        body += chunk
+    body = stream.read(length)
+    if len(body) < length:
+        return None, None
     return header + body, body
 
 
 def main():
-    server = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0)
+    server = subprocess.Popen(
+        sys.argv[1:], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0
+    )
+    # the pipe itself is unbuffered (bufsize=0, so writes to the server are not delayed);
+    # reads go through a buffer instead of one system call per byte
+    server_out = io.BufferedReader(server.stdout, 1 << 16)
     open_uris = set()  # files open in Neovim
     with_diags = set()  # files we forwarded non-empty diagnostics for
     lock = threading.Lock()
@@ -80,7 +86,7 @@ def main():
 
     try:
         while True:
-            frame, body = read_message(server.stdout)
+            frame, body = read_message(server_out)
             if frame is None:
                 break
             if b'"textDocument/publishDiagnostics"' in body:
