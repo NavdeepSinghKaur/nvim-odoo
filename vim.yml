@@ -11,3 +11,7 @@ globals:
     any: true
   jit:
     any: true
+  io.stdout:
+    any: true
+  io.stderr:
+    any: true

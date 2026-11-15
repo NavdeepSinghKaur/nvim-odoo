@@ -189,6 +189,7 @@ function M.run(opts)
         flush()
         M.jobs[title] = nil
         if opts.quickfix ~= false then
+          require("odoo.last_run").save(opts.cmd, all, code) -- for <Space>al and `odoo-nvim last`
           local qf = M.to_qf(all)
           vim.fn.setqflist({}, "r", { title = title, items = qf })
           if #qf > 0 then

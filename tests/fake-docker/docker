@@ -1,0 +1,20 @@
+#!/bin/sh
+# A stand-in for `docker` in the tests: answers the few commands the config runs, from the
+# files in $FAKE_DOCKER (config.json = `docker compose config`, test.log / update.log = output).
+case "$*" in
+    "compose config --format json") cat "$FAKE_DOCKER/config.json" ;;
+    *"--test-enable"*)
+        cat "$FAKE_DOCKER/test.log"
+        exit "${FAKE_DOCKER_EXIT:-0}"
+        ;;
+    *" -u "* | *" -i "*)
+        cat "$FAKE_DOCKER/update.log"
+        exit "${FAKE_DOCKER_EXIT:-0}"
+        ;;
+    "compose restart "*) echo " Container $3  Restarted" ;;
+    "inspect "*) echo 'true|["odoo"]' ;;
+    *)
+        echo "fake docker: unexpected arguments: $*" >&2
+        exit 64
+        ;;
+esac

@@ -136,6 +136,17 @@ function M.addon_dirs()
   return vim.deepcopy(dirs)
 end
 
+--- Odoo version of the core source, e.g. "18.0" (nil when the core copy is missing).
+---@return string?
+function M.odoo_version()
+  local release = settings.core .. "/odoo/release.py"
+  if vim.fn.filereadable(release) == 0 then return nil end
+  for _, line in ipairs(vim.fn.readfile(release)) do
+    local major, minor = line:match("^version_info%s*=%s*%(%s*(%d+)%s*,%s*(%d+)")
+    if major then return major .. "." .. minor end
+  end
+end
+
 --- Forget everything derived from the settings and the compose file.
 function M.reset()
   folders, mappings_cache, addon_dirs_cache = {}, nil, nil

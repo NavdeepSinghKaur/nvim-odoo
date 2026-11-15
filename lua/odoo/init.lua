@@ -159,6 +159,40 @@ echo "Odoo core copied to $core"]]
   })
 end
 
+--- Write lua/odoo/local.lua from what the project says (compose file, odoo.conf), then open
+--- it: the lines marked CHECK are guesses to confirm.
+---@param workspace? string default: the git repo nvim was started in
+function M.detect_settings(workspace)
+  local file = settings.local_file
+  local function write(force)
+    workspace = workspace or vim.fs.root(vim.fn.getcwd(), ".git") or vim.fn.getcwd()
+    local detected, problem = require("odoo.detect").write({ workspace = workspace }, file, force)
+    if not detected then return vim.notify("Odoo setup: " .. problem, vim.log.levels.ERROR) end
+    vim.cmd("edit " .. vim.fn.fnameescape(file))
+    local checks = #detected.notes > 0 and ("Confirm the " .. #detected.notes .. " line(s) marked CHECK, save, ")
+      or "Save, "
+    vim.notify(
+      "Wrote " .. file .. "\n" .. checks .. "restart nvim, then run :checkhealth odoo",
+      vim.log.levels.INFO,
+      { title = "Odoo" }
+    )
+  end
+  if not vim.uv.fs_stat(file) then return write(false) end
+  vim.ui.select({ "Replace it (the old one is kept as local.lua.bak)", "Keep it" }, {
+    prompt = "lua/odoo/local.lua exists already",
+  }, function(choice)
+    if choice and choice:match("^Replace") then write(true) end
+  end)
+end
+
+--- Write the brief for AI coding agents into AGENTS.md / CLAUDE.md of the workspace and open it.
+function M.ai_init()
+  local file, action = require("odoo.agent").write()
+  vim.cmd("edit " .. vim.fn.fnameescape(file))
+  local hint = "To let Claude Code run the commands without asking, allow  Bash(odoo-nvim:*)"
+  vim.notify(("Agent brief %s in %s\n%s"):format(action, file, hint), vim.log.levels.INFO, { title = "Odoo" })
+end
+
 --- Open lua/odoo/local.lua (your paths / docker names), created from the example the first time.
 function M.config()
   if not vim.uv.fs_stat(settings.local_file) then
@@ -179,7 +213,7 @@ end
 local function report_settings()
   local message
   if not settings.configured then
-    message = "Odoo paths are not set yet → run  :Odoo config"
+    message = "Odoo is not set up yet → run  :Odoo setup  (detects your project)"
   elseif #settings.problems > 0 then
     message = "Problems in lua/odoo/local.lua (:Odoo config):\n• " .. table.concat(settings.problems, "\n• ")
   end

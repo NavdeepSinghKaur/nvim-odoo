@@ -211,6 +211,21 @@ M.list = {
     run = function() odoo().sync_core() end,
   },
   {
+    name = "setup",
+    desc = "Detect YOUR settings from the project (compose file, odoo.conf) and write local.lua",
+    run = function(workspace) odoo().detect_settings(workspace) end,
+  },
+  {
+    name = "health",
+    desc = "Check programs, settings, compose file, container",
+    run = function() vim.cmd("checkhealth odoo") end,
+  },
+  {
+    name = "ai-init",
+    desc = "Write the brief for AI agents (odoo-nvim commands, your folders) into the workspace",
+    run = function() odoo().ai_init() end,
+  },
+  {
     name = "config",
     desc = "Edit YOUR settings: paths, docker service, db (lua/odoo/local.lua)",
     run = function() odoo().config() end,

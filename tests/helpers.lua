@@ -60,4 +60,47 @@ function H.project(overrides)
   return settings, root
 end
 
+--- Put the fake `docker` of tests/fake-docker first on PATH, answering from a new folder.
+--- Write config.json / test.log / update.log into the returned folder.
+---@return string dir
+function H.fake_docker()
+  local dir = H.tmpdir()
+  local fake = vim.fn.fnamemodify("tests/fake-docker", ":p"):gsub("/$", "")
+  if not vim.env.PATH:find(fake, 1, true) then vim.env.PATH = fake .. ":" .. vim.env.PATH end
+  vim.env.FAKE_DOCKER = dir
+  vim.env.FAKE_DOCKER_EXIT = nil
+  return dir
+end
+
+--- `docker compose config` output for a project made by H.project(): an odoo service that
+--- mounts the addons folders and a config folder with an odoo.conf, and a postgres service.
+---@param root string
+---@return string json
+function H.compose_config(root)
+  H.write(root .. "/docker/docker-compose.yml", { "services: {}" })
+  H.write(root .. "/docker/config/odoo.conf", {
+    "[options]",
+    "addons_path = /usr/lib/python3/dist-packages/odoo/addons, /mnt/custom, /mnt/oca/web",
+  })
+  vim.fn.mkdir(root .. "/ws/oca/web/.git", "p") -- an OCA repo cloned into the workspace
+  vim.fn.mkdir(root .. "/ws/.git", "p")
+  return vim.json.encode({
+    services = {
+      web = {
+        image = "odoo:18.0",
+        container_name = "project_web",
+        command = { "odoo", "-c", "/etc/odoo/odoo.conf", "-d", "projectdb" },
+        ports = { { target = 8069, published = "8069" }, { target = 5678, published = "5678" } },
+        volumes = {
+          { type = "bind", source = root .. "/ws/custom", target = "/mnt/custom" },
+          { type = "bind", source = root .. "/ws/oca", target = "/mnt/oca" },
+          { type = "bind", source = root .. "/docker/config", target = "/etc/odoo" },
+          { type = "volume", source = "odoo-data", target = "/var/lib/odoo" },
+        },
+      },
+      postgres = { image = "postgres:16", environment = { POSTGRES_USER = "admin" } },
+    },
+  })
+end
+
 return H

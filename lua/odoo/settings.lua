@@ -19,8 +19,9 @@
 ---@field extra_args string[] extra odoo args only in debug mode, e.g. { "--dev=xml" }
 
 ---@class OdooSettings
----@field local_file string lua/odoo/local.lua
+---@field local_file string lua/odoo/local.lua (or $ODOO_NVIM_SETTINGS)
 ---@field example_file string lua/odoo/local.example.lua
+---@field config_dir string this Neovim config (the folder with init.lua)
 ---@field configured boolean local.lua exists (or values were given to load)
 ---@field problems string[] what is wrong with the user's values (empty = fine)
 ---@field workspace string
@@ -48,8 +49,12 @@
 ---@field odoo_ls_cmd string
 local M = {}
 
-M.local_file = vim.fn.stdpath("config") .. "/lua/odoo/local.lua"
-M.example_file = vim.fn.stdpath("config") .. "/lua/odoo/local.example.lua"
+-- Next to this file, wherever the config is checked out (also right for the command line
+-- tool, which runs without the Neovim config).
+local module_dir = vim.fs.dirname(vim.fs.normalize(debug.getinfo(1, "S").source:sub(2)))
+M.local_file = vim.env.ODOO_NVIM_SETTINGS or (module_dir .. "/local.lua") -- the variable: another project
+M.example_file = module_dir .. "/local.example.lua"
+M.config_dir = vim.fs.dirname(vim.fs.dirname(module_dir)) -- the folder with init.lua and scripts/
 
 -- Every key local.lua may set, with its Lua type.
 local KEY_TYPES = {

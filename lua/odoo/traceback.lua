@@ -44,4 +44,18 @@ function M.to_qf(lines)
   return vim.list_extend(own, others)
 end
 
+--- Rewrite the container paths in a line to local paths, so the line can be read (and its
+--- files opened) outside the container.
+---@param line string
+---@return string
+function M.localize(line)
+  for _, mapping in ipairs(paths.mappings()) do
+    if line:find(mapping.remote, 1, true) then
+      local pattern = vim.pesc(mapping.remote) .. "([/\"':%s])"
+      line = line:gsub(pattern, function(after) return mapping["local"] .. after end)
+    end
+  end
+  return line
+end
+
 return M
