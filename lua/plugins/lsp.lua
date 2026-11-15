@@ -22,19 +22,7 @@ return {
     dependencies = { "mason-org/mason.nvim" },
     event = "VeryLazy",
     opts = {
-      ensure_installed = {
-        "basedpyright",
-        "ruff",
-        "lemminx",
-        "lua-language-server",
-        "json-lsp",
-        "yaml-language-server",
-        "css-lsp",
-        "typescript-language-server",
-        "black",
-        "stylua",
-        "debugpy",
-      },
+      ensure_installed = require("config.tools").mason,
       run_on_start = true,
     },
   },
@@ -51,13 +39,13 @@ return {
       -- messages while indexing, which starves Neovim's screen updates for ~30 s.
       -- Core / OCA files you open still use the same server (one client for every buffer).
       vim.lsp.config("odoo_ls", {
-        -- through a small proxy that drops the flood of empty diagnostics (see odoo/odoo_ls_proxy.py)
+        -- through a small proxy that drops the flood of empty diagnostics (see scripts/odoo_ls_proxy.py)
         cmd = function(dispatchers, config)
-          local S = require("odoo.settings")
+          local settings = require("odoo.settings")
           local cmd = {
             "python3",
-            vim.fn.stdpath("config") .. "/odoo/odoo_ls_proxy.py",
-            S.odoo_ls_cmd,
+            vim.fn.stdpath("config") .. "/scripts/odoo_ls_proxy.py",
+            settings.odoo_ls_cmd,
             "--log-level",
             "info",
             "--config-path",

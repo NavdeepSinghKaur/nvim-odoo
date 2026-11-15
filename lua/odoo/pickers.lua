@@ -1,8 +1,8 @@
 -- Odoo-aware fuzzy pickers (built on snacks.nvim picker).
 -- Inside any picker: type to filter, <C-j>/<C-k> or arrows to move, <CR> open,
 -- <C-v> open in vertical split, <C-s> horizontal split, <Esc> close.
-local S = require("odoo.settings")
-local P = require("odoo.paths")
+local settings = require("odoo.settings")
+local paths = require("odoo.paths")
 local M = {}
 
 local ro_glob = { "*.po", "*.pot", "*.min.js", "**/static/lib/**" } -- noise when searching
@@ -10,11 +10,11 @@ local ro_glob = { "*.po", "*.pot", "*.min.js", "**/static/lib/**" } -- noise whe
 -- "/…/oca/web/web_responsive/models/x.py" -> "web_responsive", "oca/web"
 local dirs_cache
 local function module_from_path(file)
-  dirs_cache = dirs_cache or P.addon_dirs()
+  dirs_cache = dirs_cache or paths.addon_dirs()
   for _, d in ipairs(dirs_cache) do
     if file:sub(1, #d + 1) == d .. "/" then
       local rest = file:sub(#d + 2)
-      return rest:match("^([^/]+)"), P.addon_dir_label(d)
+      return rest:match("^([^/]+)"), paths.addon_dir_label(d)
     end
   end
   return "?", ""
@@ -83,7 +83,7 @@ end
 function M.models(opts)
   opts = opts or {}
   local pattern = [=[^\s+_(name|inherit)\s*=\s*\[?\s*['"][a-z0-9_.]+['"]]=]
-  cached_rg("models", { "-t", "py", "-e", pattern }, P.addon_dirs(), function(found)
+  cached_rg("models", { "-t", "py", "-e", pattern }, paths.addon_dirs(), function(found)
     local items = {}
     for _, r in ipairs(found) do
       local kind, model = r.text:match("_(%a+)%s*=%s*%[?%s*['\"]([%w_.]+)")
@@ -132,7 +132,7 @@ end
 function M.xmlids(opts)
   opts = opts or {}
   local pattern = [=[<(record|template|menuitem)\b[^>]*\bid=["'][^"']+["']]=]
-  cached_rg("xmlids", { "-t", "xml", "-e", pattern }, P.addon_dirs(), function(found)
+  cached_rg("xmlids", { "-t", "xml", "-e", pattern }, paths.addon_dirs(), function(found)
     local items = {}
     for _, r in ipairs(found) do
       local tag = r.text:match("<(%a+)")
@@ -190,7 +190,7 @@ function M.views(model)
     esc,
     (model:gsub("%.", "_"))
   )
-  rg({ "-t", "xml", "-e", pattern }, P.addon_dirs(), function(found)
+  rg({ "-t", "xml", "-e", pattern }, paths.addon_dirs(), function(found)
     local items, file_lines = {}, {}
     for _, r in ipairs(found) do
       file_lines[r.file] = file_lines[r.file] or vim.fn.readfile(r.file)
@@ -234,7 +234,7 @@ end
 function M.modules(opts)
   opts = opts or {}
   local items = {}
-  for _, d in ipairs(P.addon_dirs()) do
+  for _, d in ipairs(paths.addon_dirs()) do
     for name, t in vim.fs.dir(d) do
       local manifest = d .. "/" .. name .. "/__manifest__.py"
       if t == "directory" and vim.uv.fs_stat(manifest) then
@@ -276,7 +276,7 @@ end
 
 -- ------------------------------------------------------------------ scoped search
 local function module_dir()
-  local name, dir = P.module_of()
+  local name, dir = paths.module_of()
   if not dir then vim.notify("Not inside an Odoo module", vim.log.levels.WARN) end
   return dir, name
 end
@@ -289,16 +289,18 @@ function M.grep_module()
   local dir, name = module_dir()
   if dir then Snacks.picker.grep({ dirs = { dir }, title = "Grep in " .. name }) end
 end
-function M.files_core() Snacks.picker.files({ dirs = { S.core }, title = "Files in Odoo core", exclude = ro_glob }) end
-function M.grep_core() Snacks.picker.grep({ dirs = { S.core }, title = "Grep in Odoo core", exclude = ro_glob }) end
+function M.files_core()
+  Snacks.picker.files({ dirs = { settings.core }, title = "Files in Odoo core", exclude = ro_glob })
+end
+function M.grep_core() Snacks.picker.grep({ dirs = { settings.core }, title = "Grep in Odoo core", exclude = ro_glob }) end
 function M.files_addons()
-  Snacks.picker.files({ dirs = P.addon_dirs(), title = "Files in ALL addons", exclude = ro_glob })
+  Snacks.picker.files({ dirs = paths.addon_dirs(), title = "Files in ALL addons", exclude = ro_glob })
 end
 function M.grep_addons()
-  Snacks.picker.grep({ dirs = P.addon_dirs(), title = "Grep in ALL addons (core+oca+yours)", exclude = ro_glob })
+  Snacks.picker.grep({ dirs = paths.addon_dirs(), title = "Grep in ALL addons (core+oca+yours)", exclude = ro_glob })
 end
 function M.grep_word_addons()
-  Snacks.picker.grep_word({ dirs = P.addon_dirs(), title = "Word in ALL addons", exclude = ro_glob })
+  Snacks.picker.grep_word({ dirs = paths.addon_dirs(), title = "Word in ALL addons", exclude = ro_glob })
 end
 
 return M

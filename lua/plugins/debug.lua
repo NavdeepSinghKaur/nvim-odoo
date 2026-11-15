@@ -24,7 +24,7 @@ return {
         if dap().session() then return dap().continue() end
         if
           require("odoo").is_odoo_file(vim.api.nvim_buf_get_name(0))
-          or vim.fn.getcwd():find(require("odoo").settings.root, 1, true)
+          or vim.fn.getcwd():find(require("odoo").settings.workspace, 1, true)
         then
           return require("odoo").debug()
         end

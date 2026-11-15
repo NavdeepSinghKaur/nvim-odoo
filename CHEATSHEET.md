@@ -257,7 +257,7 @@ In the Claude panel: `Esc Esc` or `Ctrl+\ Ctrl+n` leaves typing mode, then `Ctrl
   lua/odoo/local.lua         ← YOUR paths, docker service, DB, debug port (:Odoo config). Git-ignored
   lua/odoo/settings.lua      the defaults for everything local.lua does not set
   lua/odoo/*.lua             Odoo commands, pickers, output panel
-  odoo/odoo_ls_proxy.py      filter between nvim and odoo_ls (drops ~20 000 useless messages at startup)
+  scripts/odoo_ls_proxy.py   filter between nvim and odoo_ls (drops ~20 000 useless messages at startup)
   snippets/*.json            Odoo snippets
 ~/.local/share/nvim/odoo-core/   default place of the Odoo source copied from the Docker image
                              (go-to-definition, browsing, debugging). Refresh: :Odoo sync-core

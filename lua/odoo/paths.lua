@@ -1,5 +1,5 @@
 -- Path helpers: which module am I in, container <-> local paths, is this my code...
-local S = require("odoo.settings")
+local settings = require("odoo.settings")
 local M = {}
 
 local function norm(p) return (vim.fs.normalize(vim.fn.fnamemodify(p, ":p")):gsub("/$", "")) end
@@ -17,9 +17,11 @@ function M.under_any(path, dirs)
   return false
 end
 
-function M.is_own(path) return M.under_any(path, S.own_addons) end
-function M.is_readonly(path) return M.under_any(path, S.readonly_paths) end
-function M.is_odoo(path) return M.under_any(path, vim.list_extend({ S.core }, vim.deepcopy(S.addons_paths))) end
+function M.is_own(path) return M.under_any(path, settings.own_addons) end
+function M.is_readonly(path) return M.under_any(path, settings.readonly_paths) end
+function M.is_odoo(path)
+  return M.under_any(path, vim.list_extend({ settings.core }, vim.deepcopy(settings.addons_paths)))
+end
 
 --- Module of a file: walks up until a folder with __manifest__.py. Returns name, dir.
 function M.module_of(path)
@@ -41,9 +43,9 @@ end
 local mappings_cache
 function M.mappings()
   if mappings_cache then return mappings_cache end
-  local list = vim.deepcopy(S.path_mappings or {})
-  if not S.path_mappings then
-    for _, v in ipairs(require("odoo.docker").service_config().volumes or {}) do
+  local list = vim.deepcopy(settings.path_mappings or {})
+  if not settings.path_mappings then
+    for _, v in ipairs(require("odoo.compose").service_config().volumes or {}) do
       if v.type == "bind" and v.source and v.target then
         table.insert(list, { remote = v.target, ["local"] = v.source })
       end
@@ -52,9 +54,9 @@ function M.mappings()
   end
   local has_core = false
   for _, m in ipairs(list) do
-    has_core = has_core or m.remote == S.core_remote
+    has_core = has_core or m.remote == settings.core_remote
   end
-  if not has_core then table.insert(list, { remote = S.core_remote, ["local"] = S.core .. "/odoo" }) end
+  if not has_core then table.insert(list, { remote = settings.core_remote, ["local"] = settings.core .. "/odoo" }) end
   mappings_cache = list
   return list
 end
@@ -91,9 +93,9 @@ local addon_dirs_cache
 function M.addon_dirs()
   if addon_dirs_cache then return vim.deepcopy(addon_dirs_cache) end
   local dirs = {}
-  for _, d in ipairs(S.addons_paths) do
+  for _, d in ipairs(settings.addons_paths) do
     if vim.fn.isdirectory(d) == 1 then
-      if d == S.core_addons or has_modules(d) then
+      if d == settings.core_addons or has_modules(d) then
         table.insert(dirs, d)
       else
         local n = #dirs
@@ -111,8 +113,8 @@ end
 
 --- "core", "web" (repo inside a folder of repos -> "oca/web") or the folder name
 function M.addon_dir_label(d)
-  if d == S.core_addons then return "core" end
-  if vim.tbl_contains(S.addons_paths, d) then return vim.fs.basename(d) end
+  if d == settings.core_addons then return "core" end
+  if vim.tbl_contains(settings.addons_paths, d) then return vim.fs.basename(d) end
   return vim.fs.basename(vim.fs.dirname(d)) .. "/" .. vim.fs.basename(d)
 end
 

@@ -8,48 +8,10 @@ local M = {}
 local ns = vim.api.nvim_create_namespace("odoo_log")
 M.jobs = {} -- title -> job id (running)
 
-local function paths() return require("odoo.paths") end
+local traceback = require("odoo.traceback")
 
--- Find a "file:line" reference in a log line. Returns local_path, lnum or nil.
-function M.parse_location(line)
-  local file, lnum = line:match('File "([^"]+)", line (%d+)')
-  if not file then
-    file, lnum = line:match("while parsing ([^%s:]+%.xml):(%d+)")
-  end
-  if not file then
-    file, lnum = line:match("(/[%w_%-%./]+%.%a+):(%d+)")
-  end
-  if not file then
-    file = line:match("(/mnt/[%w_%-%./]+%.%a+)")
-      or line:match("(/usr/lib/python3/dist%-packages/odoo/[%w_%-%./]+%.%a+)")
-    lnum = 1
-  end
-  if not file then return nil end
-  local localf = paths().to_local(file)
-  if vim.fn.filereadable(localf) == 1 then return localf, tonumber(lnum) end
-  return nil
-end
-
--- Build quickfix items from log lines: every readable traceback frame + error lines.
-function M.to_qf(lines)
-  local items, own_first = {}, {}
-  for i, line in ipairs(lines) do
-    local f, l = M.parse_location(line)
-    if f then
-      local nxt = lines[i + 1] and vim.trim(lines[i + 1]) or ""
-      local item = { filename = f, lnum = l, text = vim.trim(line:gsub("^.-line %d+,?%s*", "")) .. "  │ " .. nxt }
-      if paths().is_own(f) then
-        table.insert(own_first, item)
-      else
-        table.insert(items, item)
-      end
-    elseif line:match(" ERROR ") or line:match(" CRITICAL ") or line:match("^FAIL:") or line:match("^ERROR:") then
-      table.insert(items, { text = line })
-    end
-  end
-  -- Your own code first: that's usually where the bug is.
-  return vim.list_extend(own_first, items)
-end
+M.parse_location = traceback.parse_location
+M.to_qf = traceback.to_qf
 
 local function highlight(buf)
   vim.api.nvim_buf_call(
