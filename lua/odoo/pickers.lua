@@ -191,10 +191,10 @@ function M.views(model)
     (model:gsub("%.", "_"))
   )
   rg({ "-t", "xml", "-e", pattern }, P.addon_dirs(), function(found)
-    local items, cache = {}, {}
+    local items, file_lines = {}, {}
     for _, r in ipairs(found) do
-      cache[r.file] = cache[r.file] or vim.fn.readfile(r.file)
-      local lines, rid, rmodel = cache[r.file], nil, nil
+      file_lines[r.file] = file_lines[r.file] or vim.fn.readfile(r.file)
+      local lines, rid, rmodel = file_lines[r.file], nil, nil
       for i = r.lnum, math.max(1, r.lnum - 15), -1 do
         rid = lines[i]:match("<record[^>]*%sid=[\"']([^\"']+)") or lines[i]:match("<menuitem[^>]*%sid=[\"']([^\"']+)")
         if rid then

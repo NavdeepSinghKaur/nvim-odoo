@@ -164,6 +164,7 @@ return {
     event = "VeryLazy",
     opts = {},
     keys = {
+      ---@diagnostic disable-next-line: undefined-field (added to Snacks by todo-comments)
       { "<leader>st", function() Snacks.picker.todo_comments() end, desc = "TODO comments" },
       { "]t", function() require("todo-comments").jump_next() end, desc = "Next TODO" },
       { "[t", function() require("todo-comments").jump_prev() end, desc = "Previous TODO" },

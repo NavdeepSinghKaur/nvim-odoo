@@ -108,7 +108,7 @@ return {
         floating = { border = "rounded" },
       })
       dap.listeners.after.event_initialized["dapui"] = function()
-        pcall(vim.cmd, "Neotree close")
+        pcall(function() vim.cmd("Neotree close") end)
         dapui.open()
         vim.notify("Debugger attached. Set breakpoints with F9 and use Odoo in the browser.")
       end
