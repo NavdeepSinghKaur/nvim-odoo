@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Unit tests of the Odoo modules: needs only Neovim and git.
+  # Unit tests of the Odoo modules: needs Neovim, git and ripgrep (the pickers scan with it).
   test:
     name: tests (Neovim ${{ matrix.neovim }})
     runs-on: ubuntu-latest
@@ -25,6 +25,7 @@ jobs:
         with:
           neovim: true
           version: ${{ matrix.neovim }}
+      - run: sudo apt-get update && sudo apt-get install -y ripgrep
       - run: make test
 
   # Shell and Python helpers.
