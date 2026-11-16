@@ -16,7 +16,8 @@ odoo-nvim doctor --json               # is everything in place
 
 - `install.sh` never runs sudo. When programs are missing it lists them with the install
   command and stops: run that command (or ask the user to), then run the script again.
-- `setup` reads the compose file and the mounted `odoo.conf`. It cannot know which addons
+- `setup` reads the compose file and the mounted `odoo.conf`, and detects the Odoo binary, the
+  debug port, the web port and a project `.venv`. It cannot know which addons
   folders are the user's own code or which Python to use: pass `--own` / `--python`, or ask.
   It prints `CHECK:` lines for what it guessed. It does not replace an existing
   `lua/odoo/local.lua` without `--force`.

@@ -201,13 +201,41 @@ end
 -- Debug mode = the same command as the compose file, but started through debugpy, using an
 -- override file generated in nvim's state dir. The user's compose file is never touched.
 
+--- Is `arg` the Odoo executable: `odoo`, `odoo-bin` (whatever the folder) or `extra` (settings.odoo_bin)?
+---@param arg string
+---@param extra? string
+---@return boolean
+function M.is_odoo_executable(arg, extra)
+  local name = vim.fs.basename(arg)
+  return name == "odoo" or name == "odoo-bin" or (extra ~= nil and arg == extra)
+end
+
 --- The compose command wrapped in debugpy.
 ---@return string[]
 function M.debug_command()
-  local command = vim.deepcopy(M.command() or {})
-  if command[1] == "odoo" or command[1] == settings.odoo_bin then table.remove(command, 1) end
-  local full = { "python3", "-m", "debugpy", "--listen", "0.0.0.0:" .. settings.debug.port, settings.odoo_bin }
-  vim.list_extend(full, command)
+  local command = M.command() or {}
+  -- The user's compose file may already run debugpy (it does here). Keep only the Odoo
+  -- arguments after the Odoo binary, otherwise `odoo` gets "python3" as a sub-command.
+  local args, python_options = command, {}
+  for i, arg in ipairs(command) do
+    if M.is_odoo_executable(arg, settings.odoo_bin) then
+      args = vim.list_slice(command, i + 1)
+      -- `python3 -Xfrozen_modules=off -m debugpy ...`: keep the interpreter options debugpy asked for
+      if vim.fs.basename(command[1]):match("^python") then
+        for j = 2, i - 1 do
+          if command[j] == "-m" and command[j + 1] == "debugpy" then
+            python_options = vim.list_slice(command, 2, j - 1)
+            break
+          end
+        end
+      end
+      break
+    end
+  end
+  local full = { "python3" }
+  vim.list_extend(full, python_options)
+  vim.list_extend(full, { "-m", "debugpy", "--listen", "0.0.0.0:" .. settings.debug.port, settings.odoo_bin })
+  vim.list_extend(full, args)
   return vim.list_extend(full, settings.debug.extra_args)
 end
 

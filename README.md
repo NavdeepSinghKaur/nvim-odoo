@@ -27,11 +27,16 @@ Everything is discoverable: press `Space` and a menu shows every shortcut; `Spac
 
 ## Requirements
 
-- Neovim **0.11+** (developed on 0.12), git, a C compiler, `curl`, `unzip`, `make` (only for `make check`)
+- Neovim **0.12+**, git, a C compiler, `curl`, `unzip`, `make` (only for `make check`)
 - [ripgrep](https://github.com/BurntSushi/ripgrep) and [fd](https://github.com/sharkdp/fd)
-- `tree-sitter` CLI and Node.js (parsers and some language servers)
-- Python 3 (runs the small odoo-ls proxy)
-- A [Nerd Font](https://www.nerdfonts.com) selected in your terminal (for the icons)
+- `tree-sitter` CLI, Node.js and `npm` (parsers and language servers), `tar` and `gzip`
+- Python 3 with `python3 -m venv` (package `python3-venv` on Debian/Ubuntu; runs the odoo-ls proxy, Mason needs it)
+- A clipboard tool (`xclip` or `wl-clipboard`; WSL uses `clip.exe` / `win32yank.exe`)
+- A [Nerd Font](https://www.nerdfonts.com) selected in your terminal (for the icons), e.g.
+  JetBrainsMono Nerd Font. Without the release zip: `curl -fsSLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip`,
+  unzip it into `~/.local/share/fonts/` and run `fc-cache -f`
+- WSL: install the Nerd Font on Windows and select it in the terminal profile, and make sure
+  `tree-sitter`, `node` and `npm` are the Linux ones, not Windows programs under `/mnt/c`
 - Docker with the compose plugin, and `debugpy` installed in your Odoo image for debugging
 - Optional: [lazygit](https://github.com/jesseduffield/lazygit), the
   [`claude` CLI](https://docs.anthropic.com/en/docs/claude-code)
@@ -67,7 +72,8 @@ It will find [`AGENTS.md`](AGENTS.md), run `scripts/install.sh --yes`, then
 
 In Neovim run **`:Odoo setup`** in your addons repo (or `odoo-nvim setup --workspace DIR` in a
 terminal). It reads your compose file and the mounted `odoo.conf` and writes
-`lua/odoo/local.lua` (git-ignored): compose folder, service names, container, addons folders.
+`lua/odoo/local.lua` (git-ignored): compose folder, service names, container, addons folders,
+the Odoo executable, the debug port, the web port and a project `.venv`.
 What it cannot know is marked `CHECK:` in the file, mainly **which addons are your own code**
 (`own_addons`: formatted on save, diagnostics shown) and which Python to use.
 

@@ -1,12 +1,18 @@
 -- Works out the settings of lua/odoo/local.lua from a project on disk, for :Odoo setup and
 -- `odoo-nvim setup`: the compose file gives the services, the container name and the mounted
 -- folders; the mounted odoo.conf gives the addons path.
--- What cannot be known (which addons are yours, your Python) is guessed and listed in `notes`.
+-- Also read from the service: the Odoo executable, the debugpy port, the published web port and
+-- a project .venv. What cannot be known (which addons are yours, your Python when there is no
+-- .venv) is guessed and listed in `notes`.
+local compose = require("odoo.compose")
 local M = {}
 
 local COMPOSE_FILES = { "compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml" }
 local DEFAULT_CONF = "/etc/odoo/odoo.conf"
 local DEFAULT_CORE_REMOTE = "/usr/lib/python3/dist-packages/odoo"
+local DEFAULT_ODOO_BIN = "/usr/bin/odoo"
+local DEFAULT_DEBUG_PORT = 5678
+local DEFAULT_WEB_PORT = 8069
 
 ---@param path string
 ---@return string
@@ -116,6 +122,42 @@ local function command_option(service, short, long)
     if arg == short or arg == long then return command[i + 1] end
     local value = arg:match("^" .. vim.pesc(long) .. "=(.+)")
     if value then return value end
+  end
+end
+
+--- The first argument of the service command that is the Odoo executable.
+local function command_odoo_bin(service)
+  for _, arg in ipairs(type(service.command) == "table" and service.command or {}) do
+    if compose.is_odoo_executable(arg) then return arg end
+  end
+end
+
+--- The port of `debugpy --listen host:port | port | =host:port` in the service command.
+---@return integer?
+local function command_debug_port(service)
+  local command = type(service.command) == "table" and service.command or {}
+  if not command_text(service):find("debugpy", 1, true) then return nil end
+  for i, arg in ipairs(command) do
+    local value = arg == "--listen" and command[i + 1] or arg:match("^%-%-listen=(.+)")
+    if value then return tonumber(value:match("(%d+)$")) end
+  end
+end
+
+--- The published port (as a number) of the container port `target`.
+---@return integer?
+local function published_port(service, target)
+  for _, port in ipairs(service.ports or {}) do
+    if tonumber(port.target) == target then return tonumber(port.published) end
+  end
+end
+
+--- The first existing project virtualenv python in `dirs`.
+local function find_venv_python(dirs)
+  for _, dir in ipairs(dirs) do
+    for _, name in ipairs({ ".venv", "venv", "env" }) do
+      local python = dir .. "/" .. name .. "/bin/python"
+      if vim.fn.executable(python) == 1 then return python end
+    end
   end
 end
 
@@ -232,6 +274,28 @@ function M.detect(opts)
 
     local conf = command_option(service, "-c", "--config") or DEFAULT_CONF
     if conf ~= DEFAULT_CONF then values.odoo_conf = conf end
+
+    local odoo_bin = command_odoo_bin(service)
+    if odoo_bin and odoo_bin:sub(1, 1) == "/" and odoo_bin ~= DEFAULT_ODOO_BIN then values.odoo_bin = odoo_bin end
+    if odoo_bin and odoo_bin:sub(1, 1) ~= "/" and odoo_bin ~= "odoo" then
+      table.insert(notes, "the Odoo executable is '" .. odoo_bin .. "': set odoo_bin to its absolute path (debug mode)")
+    end
+    local debug_port = command_debug_port(service) or DEFAULT_DEBUG_PORT
+    if debug_port ~= DEFAULT_DEBUG_PORT then values.debug = { port = debug_port } end
+    if not published_port(service, debug_port) then
+      table.insert(
+        notes,
+        ('debug port %d is not published in the compose file: add "%d:%d" to the ports of the %s service'):format(
+          debug_port,
+          debug_port,
+          debug_port,
+          service_name
+        ) .. " (F5 cannot attach)"
+      )
+    end
+    local web_port = published_port(service, 8069)
+    if web_port and web_port ~= DEFAULT_WEB_PORT then values.web_url = "http://localhost:" .. web_port end
+
     mappings = binds(service)
     conf_paths = conf_addons_path(to_local(mappings, conf) or "")
     if #conf_paths == 0 then
@@ -294,8 +358,11 @@ function M.detect(opts)
   values.own_addons = #own > 0 and own or nil
   values.addons_paths = #addons > 0 and group_by_parent(addons, workspace) or nil
   values.readonly_paths = vim.list_extend({ values.core }, group_by_parent(vendored, workspace))
+  local venv_python = not opts.python and find_venv_python({ workspace, compose_dir })
   if opts.python then
     values.python = norm(opts.python)
+  elseif venv_python then
+    values.python = venv_python
   else
     table.insert(notes, "python is the system python3: set it to a venv with Odoo's requirements for better completion")
   end
@@ -317,13 +384,16 @@ local KEY_ORDER = {
   "db_user",
   "odoo_conf",
   "core_remote",
+  "odoo_bin",
+  "web_url",
+  "debug",
 }
 
 --- A path as Lua source, with the home folder written as ~ (settings.lua expands it).
 local function quoted(value)
   local home = vim.env.HOME
-  if home and inside(value, home) then value = "~" .. value:sub(#home + 1) end
-  return ("%q"):format(value)
+  if type(value) == "string" and home and inside(value, home) then value = "~" .. value:sub(#home + 1) end
+  return type(value) == "string" and ("%q"):format(value) or tostring(value)
 end
 
 --- The text of a local.lua file for detected values.
@@ -340,7 +410,9 @@ function M.render(detected)
   table.insert(lines, "return {")
   for _, key in ipairs(KEY_ORDER) do
     local value = detected.values[key]
-    if type(value) == "table" then
+    if key == "debug" and value then
+      table.insert(lines, ("  debug = { port = %s },"):format(quoted(value.port)))
+    elseif type(value) == "table" then
       table.insert(lines, "  " .. key .. " = {")
       for _, item in ipairs(value) do
         table.insert(lines, "    " .. quoted(item) .. ",")
