@@ -472,5 +472,122 @@
       "    </t>",
       "</templates>"
     ]
+  },
+  "Odoo view: pivot": {
+    "prefix": "opivot",
+    "description": "Pivot view (cross table of sums and counts)",
+    "body": [
+      "<record id=\"${1:my_thing}_view_pivot\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">${2:my.thing}.pivot</field>",
+      "    <field name=\"model\">${2:my.thing}</field>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <pivot string=\"${3:Things}\">",
+      "            <field name=\"${4:date}\" type=\"row\"/>",
+      "            <field name=\"${5:amount}\" type=\"measure\"/>",
+      "            $0",
+      "        </pivot>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo view: graph": {
+    "prefix": "ograph",
+    "description": "Graph view (bar chart of a measure per group)",
+    "body": [
+      "<record id=\"${1:my_thing}_view_graph\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">${2:my.thing}.graph</field>",
+      "    <field name=\"model\">${2:my.thing}</field>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <graph string=\"${3:Things}\" type=\"bar\">",
+      "            <field name=\"${4:state}\"/>",
+      "            <field name=\"${5:amount}\" type=\"measure\"/>",
+      "            $0",
+      "        </graph>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo view: calendar": {
+    "prefix": "ocalendar",
+    "description": "Calendar view (records placed on dates)",
+    "body": [
+      "<record id=\"${1:my_thing}_view_calendar\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">${2:my.thing}.calendar</field>",
+      "    <field name=\"model\">${2:my.thing}</field>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <calendar string=\"${3:Things}\" date_start=\"${4:date_start}\" date_stop=\"${5:date_stop}\" color=\"${6:user_id}\">",
+      "            <field name=\"${7:name}\"/>",
+      "            $0",
+      "        </calendar>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo view: activity": {
+    "prefix": "oactivity",
+    "description": "Activity view (one line per record, its planned activities)",
+    "body": [
+      "<record id=\"${1:my_thing}_view_activity\" model=\"ir.ui.view\">",
+      "    <field name=\"name\">${2:my.thing}.activity</field>",
+      "    <field name=\"model\">${2:my.thing}</field>",
+      "    <field name=\"arch\" type=\"xml\">",
+      "        <activity string=\"${3:Things}\">",
+      "            <field name=\"${4:name}\"/>",
+      "            $0",
+      "        </activity>",
+      "    </field>",
+      "</record>"
+    ]
+  },
+  "Odoo view: search filter group by": {
+    "prefix": "ofilter",
+    "description": "<filter> that groups the list by a field (search view)",
+    "body": [
+      "<filter name=\"${1:group_by_x}\" string=\"${2:By field}\" context=\"{'group_by': '${3:field}'}\"/>$0"
+    ]
+  },
+  "Odoo view: field with widget": {
+    "prefix": "owidget",
+    "description": "Field shown with a specific widget",
+    "body": [
+      "<field name=\"${1:name}\" widget=\"${2:many2many_tags}\"/>$0"
+    ]
+  },
+  "Odoo data: noupdate block": {
+    "prefix": "onoupdate",
+    "description": "Records loaded once: a module update does not overwrite them",
+    "body": [
+      "<data noupdate=\"1\">",
+      "    $0",
+      "</data>"
+    ]
+  },
+  "QWeb: t-call template": {
+    "prefix": "otcall",
+    "description": "Render another template here",
+    "body": [
+      "<t t-call=\"${1:module.template_id}\"/>$0"
+    ]
+  },
+  "QWeb: t-set variable": {
+    "prefix": "otset",
+    "description": "Set a variable for the rest of the template",
+    "body": [
+      "<t t-set=\"${1:name}\" t-value=\"${2:value}\"/>$0"
+    ]
+  },
+  "QWeb: t-out value": {
+    "prefix": "otout",
+    "description": "Print a value (escaped unless it is markup)",
+    "body": [
+      "<span t-out=\"${1:value}\"/>$0"
+    ]
+  },
+  "QWeb: t-att dynamic attribute": {
+    "prefix": "otattr",
+    "description": "Attribute whose value is an expression",
+    "body": [
+      "<div t-att-${1:class}=\"${2:value}\">$0</div>"
+    ]
   }
 }

@@ -169,19 +169,22 @@ Tests can be debugged too: be in debug mode, set a breakpoint in the test, `F5`,
 Type the prefix, pick it in the menu, then `Tab` / `Shift+Tab` jump between the fields to fill.
 All Odoo snippets start with **`o`**: type `o` + a few letters and look at the menu.
 
-**Python** — `omodel` new model · `oinherit` extend model · `owizard` · `oimports` ·
+**Python** — `omodel` new model · `oinherit` extend model · `owizard` · `oabstract` · `oimports` ·
 fields: `ofchar` `oftext` `ofhtml` `ofint` `offloat` `ofmonetary` `ofbool` `ofdate` `ofdatetime` `ofsel`
 `ofm2o` `ofo2m` `ofm2m` `ofrelated` `ofbinary` `ofimage` `ofcompany` ·
 `ocompute` (field + method) `ocomputeinv` `oonchange` `oconstrains` `osql` ·
 overrides: `ocreate` `owrite` `ounlink` `ocopy` `odefault` `odisplayname` `osuper` ·
-`obuttonmethod` `ocronmethod` · ORM: `osearch` `ocount` `oreadgroup` `oref` `osudo` `ocontext` `ofiltered` ·
+`obuttonmethod` `ocronmethod` · ORM: `osearch` `orecsearch` `ocount` `oreadgroup` `oref` `osudo` `ocontext` `ofiltered` ·
 `oerror` `ovalerror` `ologger` `olog` · actions: `oactwindow` `oactform` `oactwizard` `oactnotify` `oactreload` ·
-`ocontroller` · tests: `otest` `otestmethod` `otestraises` `otestform` · `omanifest` `ohook` `oimport`
+`ocontroller` `ojsonroute` · tests: `otest` `otestmethod` `otestraises` `otestform` · `omanifest` `ohook` `oimport` ·
+loops and checks: `ofor` `oensure` · search and create: `osearchread` `ocreatemany` · `ogetparam` `osetparam` (system parameters) ·
+`ohasgroup` (security group) · `oseq` (ir.sequence) · `otr` (translatable `_()`) · `owithcompany` · `odate` (today) · `omigrate` (migration script)
 
-**XML** — `oodoo` · views: `oform` `olist` `olistedit` `osearch` `okanban` `oinheritview` `oxpath` `oxpathany`
-`oattr` (change attribute) `ofield` `ofieldif` `ofieldm2o` `obutton` `obuttonaction` `osmartbutton` `ogroup` `opage` `ochatter` ·
-`oaction` `omenu` `omenuroot` `oserveraction` `ocron` `osequence` `osecgroup` `orule` `oparam` `osettings`
-`oreport` `omailtemplate` · QWeb/OWL: `otforeach` `otif` `oowltemplate` `oowlinherit`
+**XML** — `oodoo` `orecord` · views: `oform` `olist` `olistedit` `osearch` `okanban` `opivot` `ograph` `ocalendar` `oactivity` `oinheritview`
+`oxpath` `oxpathany` `oattr` (change attribute) `ofield` `ofieldif` `ofieldm2o` `owidget` `ofilter` (search group by) ·
+`obutton` `obuttonaction` `osmartbutton` `ogroup` `opage` `ochatter` ·
+`oaction` `omenu` `omenuroot` `oserveraction` `ocron` `osequence` `osecgroup` `orule` `oparam` `osettings` `onoupdate`
+`oreport` `omailtemplate` · QWeb/OWL: `otforeach` `otif` `otcall` `otset` `otout` `otattr` `oowltemplate` `oowlinherit`
 
 **JS (OWL)** — `oowl` component · `oowlaction` client action · `oowlfield` field widget · `opatch` ·
 `oorm` `osearchread` `orpc` `onotify` `odoaction`
