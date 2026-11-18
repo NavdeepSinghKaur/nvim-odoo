@@ -44,4 +44,39 @@ T["adds the block to an existing CLAUDE.md"] = function()
   eq(lines[#lines], "<!-- odoo-nvim:end -->")
 end
 
+T["a new AGENTS.md gets a CLAUDE.md that imports it (Claude Code reads CLAUDE.md)"] = function()
+  local agent, settings = agent_for_project()
+  agent.write()
+  eq(vim.fn.readfile(settings.workspace .. "/CLAUDE.md"), { "@AGENTS.md" })
+end
+
+T["the brief has every catalog command"] = function()
+  local agent = agent_for_project()
+  local text = table.concat(agent.brief(), "\n")
+  for _, command in ipairs(require("odoo.catalog").commands) do
+    eq(
+      { command.name, text:find("`" .. command.usage:match("^[^|]+"):gsub("%s+$", ""), 1, true) ~= nil },
+      { command.name, true }
+    )
+  end
+end
+
+T["status: missing, current, stale, and a CLAUDE.md that hides the block"] = function()
+  local agent, settings = agent_for_project()
+  eq((agent.status()), "missing")
+  agent.write()
+  eq((agent.status()), "current")
+  local file = settings.workspace .. "/AGENTS.md"
+  local lines = vim.fn.readfile(file)
+  for i, line in ipairs(lines) do
+    if line:find("odoo-nvim update", 1, true) then lines[i] = "| old row |" end
+  end
+  vim.fn.writefile(lines, file)
+  eq((agent.status()), "stale")
+  agent.write()
+  vim.fn.writefile({ "# no import here" }, settings.workspace .. "/CLAUDE.md")
+  local state, shown = agent.status()
+  eq({ state, shown }, { "unreachable", settings.workspace .. "/CLAUDE.md" })
+end
+
 return T
