@@ -40,6 +40,7 @@ Setup and status:
                                    (--print: show it, write nothing; --force: replace it)
   brief [--write]                  the instructions for AI agents working in the addons repo
                                    (--write: put them into its AGENTS.md / CLAUDE.md)
+  commands [--json]                the commands an agent may run, as a table or JSON (for harnesses)
   info [--json]                    what is configured: folders, container, database
   doctor [--json]                  check programs, settings, compose file, container
 
@@ -346,6 +347,11 @@ function commands.brief(_, flags)
   if not flags.write then return say(table.concat(agent.brief(), "\n")) end
   local file, action = agent.write()
   say(("RESULT: ok brief %s in %s"):format(action, file))
+end
+
+function commands.commands(_, flags)
+  local catalog = require("odoo.catalog")
+  say(flags.json and catalog.json() or table.concat(catalog.table(), "\n"))
 end
 
 function commands.frontend(args, flags)

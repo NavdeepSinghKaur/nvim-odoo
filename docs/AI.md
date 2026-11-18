@@ -48,6 +48,8 @@ By hand it is the same three commands, or `:Odoo setup` and `:Odoo health` insid
 | `odoo-nvim start` / `stop` / `restart` | the Odoo container |
 | `odoo-nvim dbs` | databases; `--db NAME` on any command uses another one |
 | `odoo-nvim info` / `doctor` | what is configured / is it healthy (`--json`) |
+| `odoo-nvim frontend [module]` | JS / XML templates / SCSS loaded by a bundle? (no Docker) |
+| `odoo-nvim commands [--json]` | this list, for a program (generated from `lua/odoo/catalog.lua`) |
 | `odoo-nvim brief [--write]` | the instructions for agents (below) |
 
 What makes it usable by an agent:
@@ -64,6 +66,16 @@ brief into that repo's `AGENTS.md` (or `CLAUDE.md` if that is what the repo has)
 above, the loop to follow, which folders are yours and which are read-only. It only owns the
 block between its two marker comments, so running it again updates the block and leaves the
 rest of the file alone.
+
+**Why this way.** An agent can only use a command it knows about, and it knows what is in its
+context: the project's `AGENTS.md` / `CLAUDE.md`, loaded at every session start, in every tool
+(Claude Code, Codex, Cursor...). So the commands live there, in a block this config writes and
+keeps current. The list is generated from one file (`lua/odoo/catalog.lua`), so the brief, the
+`commands --json` output and the tests cannot drift apart, and `:checkhealth odoo` / `odoo-nvim
+doctor` warn when the block is missing or old. Claude Code reads `CLAUDE.md` and not `AGENTS.md`,
+so `ai-init` also creates a `CLAUDE.md` with the line `@AGENTS.md`. A plain command line tool
+needs no server or per-tool setup, which an MCP server would. A Claude Code skill (loaded only
+when needed) is a possible next step if the brief grows.
 
 For Claude Code, allow the command once so it does not ask every time. In the addons repo's
 `.claude/settings.json`:

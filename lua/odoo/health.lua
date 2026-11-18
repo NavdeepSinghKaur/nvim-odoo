@@ -169,6 +169,21 @@ function M.checks()
     add("odoo core", "warn", "no Odoo source in " .. settings.core, "run :Odoo sync-core (go to definition, debugger)")
   end
 
+  -- what agents know about the commands
+  if settings.configured then
+    local state, file = require("odoo.agent").status()
+    local hints = {
+      missing = "agents do not know `odoo-nvim`: run :Odoo ai-init (or `odoo-nvim brief --write`)",
+      stale = "the odoo-nvim block of " .. file .. " is out of date: run :Odoo ai-init",
+      unreachable = "Claude Code reads CLAUDE.md, which does not import AGENTS.md: add the line @AGENTS.md to " .. file,
+    }
+    if state == "current" then
+      add("agent brief", "ok", file)
+    else
+      add("agent brief", "warn", state .. " in " .. file, hints[state])
+    end
+  end
+
   -- docker
   if not has("docker") then
     add(

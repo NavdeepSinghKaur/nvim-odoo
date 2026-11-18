@@ -35,6 +35,7 @@ odoo-nvim doctor --json               # is everything in place
 | `lua/odoo/commands.lua` | every `:Odoo` sub-command with its `<Space>o` key |
 | `lua/odoo/paths.lua`, `traceback.lua`, `tests.lua` | path mapping, log parsing, test tags |
 | `lua/odoo/detect.lua`, `health.lua`, `agent.lua` | `setup`, `doctor`, the agent brief |
+| `lua/odoo/catalog.lua` | the ONE list of `odoo-nvim` commands agents may run: feeds the brief table and `odoo-nvim commands --json` |
 | `scripts/cli.lua`, `scripts/odoo-nvim` | the command line tool (runs with `nvim -u NONE -l`) |
 | `scripts/bootstrap.lua`, `install*.sh` | unattended install |
 | `tests/` | mini.test specs; `tests/fake-docker/docker` stands in for Docker |
@@ -44,13 +45,16 @@ odoo-nvim doctor --json               # is everything in place
 - `make check` must pass before you call a change done: StyLua, selene, lua-language-server
   and the tests. `make fmt` formats.
 - Modules that `scripts/cli.lua` loads (`settings`, `compose`, `paths`, `traceback`, `tests`,
-  `last_run`, `health`, `detect`, `agent`) must not use plugins, `Snacks`, windows or
+  `last_run`, `health`, `detect`, `agent`, `catalog`, `frontend`) must not use plugins, `Snacks`, windows or
   `vim.notify`: they run without the editor. UI belongs in `docker.lua`, `log.lua`,
   `pickers.lua`, `init.lua`.
 - A new Odoo action is an argument list in `compose.lua`, a runner in `docker.lua`, one entry
   in `commands.lua` (name, description, key) and, if useful to agents, a CLI command.
 - Public functions carry LuaCATS annotations (`---@param`, `---@return`). Comments say why.
 - Keep the style of the file: 2 spaces, 120 columns, simple functions on one line.
+- A new CLI command goes into `lua/odoo/catalog.lua` (or into `not_listed` with the reason) and into the
+  USAGE text of `scripts/cli.lua`: `tests/test_catalog.lua` fails otherwise. Agents only know the
+  commands that are in the brief generated from that list.
 - Add a test for behaviour you add or fix. Tests build a throw-away project with
   `H.project()` and never touch the real Docker.
 - New keys go in the plugin spec or `commands.lua` with a `desc`, and in `CHEATSHEET.md`.

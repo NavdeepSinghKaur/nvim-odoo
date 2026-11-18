@@ -685,5 +685,104 @@
       "from odoo import _, api, fields, models",
       "from odoo.exceptions import UserError, ValidationError"
     ]
+  },
+  "Odoo ORM: for each record": {
+    "prefix": "ofor",
+    "description": "Loop over a recordset",
+    "body": [
+      "for ${1:rec} in ${2:self}:",
+      "    $0"
+    ]
+  },
+  "Odoo ORM: ensure_one": {
+    "prefix": "oensure",
+    "description": "Fail unless the recordset holds exactly one record",
+    "body": [
+      "${1:self}.ensure_one()$0"
+    ]
+  },
+  "Odoo ORM: search_read": {
+    "prefix": "osearchread",
+    "description": "search_read: domain, then the fields to return",
+    "body": [
+      "self.env['${1:res.partner}'].search_read([${2:('active', '=', True)}], [${3:'name'}])$0"
+    ]
+  },
+  "Odoo ORM: create many": {
+    "prefix": "ocreatemany",
+    "description": "create() with a list of value dicts (one call, many records)",
+    "body": [
+      "self.env['${1:model.name}'].create([",
+      "    {'${2:name}': ${3:value}},",
+      "    {'${2:name}': ${4:value}},",
+      "])$0"
+    ]
+  },
+  "Odoo: get config parameter": {
+    "prefix": "ogetparam",
+    "description": "Read a system parameter (Settings > Technical > Parameters)",
+    "body": [
+      "self.env['ir.config_parameter'].sudo().get_param('${1:module.key}', ${2:default})$0"
+    ]
+  },
+  "Odoo: set config parameter": {
+    "prefix": "osetparam",
+    "description": "Write a system parameter",
+    "body": [
+      "self.env['ir.config_parameter'].sudo().set_param('${1:module.key}', ${2:value})$0"
+    ]
+  },
+  "Odoo: user has group": {
+    "prefix": "ohasgroup",
+    "description": "Check a security group of the current user",
+    "body": [
+      "self.env.user.has_group('${1:module.group_name}')$0"
+    ]
+  },
+  "Odoo ORM: next sequence": {
+    "prefix": "oseq",
+    "description": "Next number of an ir.sequence (its code)",
+    "body": [
+      "self.env['ir.sequence'].next_by_code('${1:model.code}')$0"
+    ]
+  },
+  "Odoo: translatable string": {
+    "prefix": "otr",
+    "description": "_('text'): a string the user sees, translated",
+    "body": [
+      "_('${1:text}')$0"
+    ]
+  },
+  "Odoo ORM: with_company": {
+    "prefix": "owithcompany",
+    "description": "Run the code as another company (multi-company)",
+    "body": [
+      "self.with_company(${1:company})$0"
+    ]
+  },
+  "Odoo: today": {
+    "prefix": "odate",
+    "description": "Today's date in the user's timezone",
+    "body": [
+      "fields.Date.context_today(self)$0"
+    ]
+  },
+  "Odoo: migration script": {
+    "prefix": "omigrate",
+    "description": "migrations/<version>/pre-migrate.py or post-migrate.py",
+    "body": [
+      "def migrate(cr, version):",
+      "    \"\"\"${1:Why this migration is needed}\"\"\"",
+      "    $0"
+    ]
+  },
+  "Odoo: JSON route": {
+    "prefix": "ojsonroute",
+    "description": "Controller route that takes and returns JSON (type='json')",
+    "body": [
+      "@http.route('${1:/my/path}', type='json', auth='${2:user}', methods=['POST'])",
+      "def ${3:my_method}(self, ${4:param}):",
+      "    $0"
+    ]
   }
 }
