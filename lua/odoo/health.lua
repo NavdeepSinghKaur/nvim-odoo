@@ -23,6 +23,25 @@ local function first_line(cmd)
   return vim.split(vim.trim(result.stdout .. result.stderr), "\n")[1]
 end
 
+--- Full path of the first of `names` that is on the PATH (nil when none is).
+---@param names string[]
+---@return string?
+local function program_path(names)
+  local found = vim.tbl_filter(has, names)[1]
+  if found then return vim.fn.exepath(found) end
+end
+
+--- Full path of the tree-sitter CLI. Mason installs it into its bin folder, which only the editor
+--- puts on the PATH: `odoo-nvim doctor` runs without the editor, so look there too.
+---@return string?
+local function tree_sitter_path()
+  -- Mason's copy first: inside the editor it is first on the PATH too, so a broken Windows shim
+  -- on the WSL PATH (/mnt/c) must not hide it.
+  local mason = (vim.env.MASON or (vim.fn.stdpath("data") .. "/mason")) .. "/bin/tree-sitter"
+  if vim.fn.executable(mason) == 1 then return mason end
+  return program_path({ "tree-sitter" })
+end
+
 ---@return string version pinned in scripts/odoo-ls.version
 local function pinned_odoo_ls()
   local file = settings.config_dir .. "/scripts/odoo-ls.version"
@@ -52,9 +71,7 @@ function M.checks()
     { "git" },
     { "rg", hint = "install ripgrep (pickers and grep)" },
     { "fd", "fdfind", hint = "install fd (file pickers)" },
-    { "tree-sitter", hint = "install the tree-sitter CLI (parsers are compiled with it)" },
-    { "node", hint = "install Node.js (some language servers)" },
-    { "npm", hint = "install npm (Mason installs several language servers with it)" },
+    { "tree-sitter", hint = "installed by Mason on first start (:Mason), or install the tree-sitter CLI" },
     { "python3", hint = "install Python 3 (runs the odoo-ls proxy)" },
     { "cc", "gcc", "clang", hint = "install a C compiler (Treesitter parsers)" },
     { "curl" },
@@ -63,15 +80,20 @@ function M.checks()
     { "gzip" },
   }
   -- Under WSL the Windows shims on the PATH (/mnt/c/...) are found but crash when run.
-  local must_run = { ["tree-sitter"] = true, node = true, npm = true }
+  local must_run = { ["tree-sitter"] = true }
   for _, program in ipairs(required) do
-    local found = vim.tbl_filter(has, program)[1]
-    local path = found and vim.fn.exepath(found)
-    if found and must_run[found] and (not first_line({ found, "--version" }) or vim.startswith(path, "/mnt/")) then
+    local path
+    if program[1] == "tree-sitter" then
+      path = tree_sitter_path()
+    else
+      path = program_path(program)
+    end
+    -- run the full path: it may not be on the PATH (see tree_sitter_path)
+    if path and must_run[program[1]] and (not first_line({ path, "--version" }) or vim.startswith(path, "/mnt/")) then
       local windows = vim.startswith(path, "/mnt/")
       local hint = windows and "a Windows program on the WSL PATH? install the Linux one" or "reinstall it"
       add(program[1], "error", "found at " .. path .. " but it does not run", hint)
-    elseif found then
+    elseif path then
       add(program[1], "ok", path)
     else
       add(program[1], "error", "not found", program.hint or ("install " .. program[1]))

@@ -8,12 +8,11 @@
 #   --skip-bootstrap  do not pre-install plugins, tools and parsers (nvim does it on first start)
 #   --skip-font       do not install the Nerd Font (on WSL it goes to Windows, see install-font.sh)
 #
-# What it does: checks the required programs, that tree-sitter, node and npm really run (a
-# Windows program on the WSL PATH is found but crashes) and that python3 can make a venv
-# (Mason needs it). It prints the commands to install what is missing and never runs sudo
-# itself. Then it links this folder as the Neovim config, installs odoo-ls into ~/.local,
-# pre-installs plugins / Mason tools / Treesitter parsers, and links the `odoo-nvim` command
-# into ~/.local/bin.
+# What it does: checks the required programs and that python3 can make a venv (Mason needs it).
+# It prints the commands to install what is missing and never runs sudo itself. Then it links
+# this folder as the Neovim config, installs odoo-ls into ~/.local, pre-installs plugins / Mason
+# tools (including the tree-sitter CLI, which needs no Node.js or npm) / Treesitter parsers, and
+# links the `odoo-nvim` command into ~/.local/bin.
 #
 # The last line is "RESULT: ok" or "RESULT: failed (<reason>)"; the exit code is 0 or 1.
 # Honours XDG_CONFIG_HOME and NVIM_APPNAME.
@@ -56,24 +55,6 @@ need() { # need <package name> <command> [alternative command...]
     printf '  MISSING  %s\n' "$1"
     missing+=("$package")
 }
-# need_working: like need, and the program must also run. Under WSL `command -v` finds Windows
-# npm shims (/mnt/c/...) that crash when run, so the parser or Mason step fails much later.
-need_working() { # need_working <package name> <command>
-    local path
-    path="$(command -v "$2" 2> /dev/null)"
-    if [ -z "$path" ]; then
-        need "$1" "$2"
-        return
-    fi
-    if ! "$2" --version > /dev/null 2>&1 || [[ "$path" == /mnt/* ]]; then
-        printf '  BROKEN   %s: %s does not run' "$2" "$path"
-        [[ "$path" == /mnt/* ]] && printf ' (a Windows program on the WSL PATH: install the Linux one)'
-        printf '\n'
-        missing+=("$1")
-        return
-    fi
-    printf '  ok       %s\n' "$2"
-}
 optional() { # optional <command> <what it is for>
     if have "$1"; then printf '  ok       %s\n' "$1"; else printf '  optional %s: %s\n' "$1" "$2"; fi
 }
@@ -85,9 +66,6 @@ need unzip unzip
 need gcc cc gcc clang
 need ripgrep rg
 need fd fd fdfind
-need_working tree-sitter-cli tree-sitter
-need_working nodejs node
-need_working npm npm
 need tar tar
 need gzip gzip
 need python3 python3
@@ -121,23 +99,12 @@ if [ "${#missing[@]}" -gt 0 ]; then
     echo
     echo "Install the missing programs, then run this script again. For example:"
     list="${missing[*]}"
-    # The printed commands must work when pasted. tree-sitter-cli is an npm package on
-    # Debian/Ubuntu and Fedora, so there it gets its own line.
-    to_install=() npm_tree_sitter=0
-    for package in "${missing[@]}"; do
-        if [ "$package" = tree-sitter-cli ] && { have apt-get || have dnf; }; then
-            npm_tree_sitter=1
-        else
-            to_install+=("$package")
-        fi
-    done
-    packages="${to_install[*]}"
+    packages="$list"
     if have apt-get; then
-        [ -z "$packages" ] || echo "  sudo apt-get install -y $packages"
-        echo "  Debian/Ubuntu notes: the package for fd is 'fd-find'; npm comes with nodejs on most"
-        echo "  systems (package 'npm' on Debian/Ubuntu); 'python3 -m venv' is the package python3-venv."
+        echo "  sudo apt-get install -y $packages"
+        echo "  Debian/Ubuntu note: the package for fd is 'fd-find'."
     elif have dnf; then
-        [ -z "$packages" ] || echo "  sudo dnf install -y $packages"
+        echo "  sudo dnf install -y $packages"
         echo "  Fedora note: the package for fd is 'fd-find'."
     elif have pacman; then
         echo "  sudo pacman -S --needed $packages"
@@ -146,7 +113,6 @@ if [ "${#missing[@]}" -gt 0 ]; then
     else
         echo "  $packages"
     fi
-    [ "$npm_tree_sitter" -eq 0 ] || echo "  npm install -g tree-sitter-cli     (with the Linux npm)"
     if [ "$too_old" -eq 1 ]; then
         echo "  Neovim 0.12 or newer: if your package manager has an older one, take the release"
         echo "  from https://github.com/neovim/neovim/releases"

@@ -48,7 +48,7 @@ au("FileType", {
   end,
 })
 
--- Wrap + spell check in prose files
+-- Wrap long lines in prose files
 au("FileType", {
   pattern = { "markdown", "gitcommit", "text", "rst" },
   callback = function()
@@ -61,7 +61,7 @@ au("FileType", {
 au("BufWritePre", {
   callback = function(ev)
     if ev.match:match("^%w%w+:[\\/][\\/]") then return end
-    local file = (vim.uv or vim.loop).fs_realpath(ev.match) or ev.match
+    local file = vim.uv.fs_realpath(ev.match) or ev.match
     vim.fn.mkdir(vim.fn.fnamemodify(file, ":p:h"), "p")
   end,
 })

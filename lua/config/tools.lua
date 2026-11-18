@@ -3,14 +3,16 @@
 -- installs them up front for an unattended setup.
 local M = {}
 
--- Language servers, formatters, linters and the debug adapter (:Mason)
+-- Language servers, formatters, linters, the debug adapter and the tree-sitter CLI (:Mason).
+-- The tree-sitter CLI is a prebuilt binary from Mason: no Node.js or npm is needed.
 -- stylua: ignore
 M.mason = {
-  "basedpyright", "ruff", "lemminx", "lua-language-server", "json-lsp", "yaml-language-server",
-  "css-lsp", "typescript-language-server", "black", "stylua", "debugpy", "selene",
+  "basedpyright", "ruff", "lemminx", "lua-language-server", "black", "stylua", "debugpy", "selene",
+  "tree-sitter-cli",
 }
 
--- Treesitter parsers (need the tree-sitter CLI and a C compiler)
+-- Treesitter parsers. Mason installs the tree-sitter CLI (above), but compiling a parser also
+-- needs a C compiler on the system.
 -- stylua: ignore
 M.parsers = {
   "python", "xml", "html", "javascript", "typescript", "css", "scss", "json", "yaml", "toml",

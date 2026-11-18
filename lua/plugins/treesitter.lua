@@ -14,10 +14,38 @@ return {
     build = ":TSUpdate",
     config = function()
       require("nvim-treesitter").setup({})
-      -- install missing parsers in the background (needs the tree-sitter CLI + a C compiler)
-      local installed = require("nvim-treesitter").get_installed()
-      local missing = vim.tbl_filter(function(p) return not vim.tbl_contains(installed, p) end, parsers)
-      if #missing > 0 then require("nvim-treesitter").install(missing) end
+
+      -- install the missing parsers in the background (needs the tree-sitter CLI + a C compiler)
+      local function install_missing()
+        local treesitter = require("nvim-treesitter")
+        local installed = treesitter.get_installed()
+        local missing = vim.tbl_filter(function(p) return not vim.tbl_contains(installed, p) end, parsers)
+        if #missing > 0 then treesitter.install(missing) end
+      end
+
+      -- The CLI comes from Mason. Loading Mason puts its bin folder first on PATH.
+      require("lazy").load({ plugins = { "mason.nvim" } })
+      if vim.fn.executable("tree-sitter") == 1 then
+        install_missing()
+      else
+        -- First start: install the CLI, then the parsers. Checked again on every start (no debounce),
+        -- and a Mason problem must not break startup.
+        pcall(function()
+          local registry = require("mason-registry")
+          registry.refresh(function() -- asynchronous: its errors would not reach the pcall above
+            pcall(function()
+              local package = registry.get_package("tree-sitter-cli")
+              if package:is_installed() then return vim.schedule(install_missing) end
+              package:install():once(
+                "closed",
+                vim.schedule_wrap(function()
+                  if package:is_installed() then install_missing() end
+                end)
+              )
+            end)
+          end)
+        end)
+      end
 
       vim.api.nvim_create_autocmd("FileType", {
         group = vim.api.nvim_create_augroup("user_treesitter", { clear = true }),
@@ -31,9 +59,6 @@ return {
       })
     end,
   },
-
-  -- queries for function/class/argument text objects (used by mini.ai below)
-  { "nvim-treesitter/nvim-treesitter-textobjects", branch = "main", lazy = true },
 
   {
     "nvim-mini/mini.ai",
@@ -55,10 +80,12 @@ return {
     end,
   },
 
-  -- jump between functions / classes
+  -- queries for function/class/argument text objects (used by mini.ai below) and the
+  -- jumps between functions / classes
   {
     "nvim-treesitter/nvim-treesitter-textobjects",
     branch = "main",
+    lazy = true,
     keys = (function()
       local function mv(dir, q)
         return function() require("nvim-treesitter-textobjects.move")[dir](q, "textobjects") end

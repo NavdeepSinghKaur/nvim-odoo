@@ -289,7 +289,8 @@ Each ends with `RESULT: ok` / `RESULT: failed ...` and lists the failing file:li
 ```
 
 Language servers: **odoo_ls** (Odoo-aware Python/XML/JS, by Odoo SA) · ruff (lint: flake8 + bugbear
-rules) · lemminx (XML) · basedpyright (Python outside Odoo addons) · lua/json/yaml/css/ts.
+rules) · lemminx (XML) · basedpyright (Python outside Odoo addons) · lua. JSON, YAML, CSS and TypeScript
+have Treesitter highlighting only (their servers need Node.js).
 Formatting: black on save only for Python files of `own_addons`. Never on OCA/core/XML.
 
 Debug mode writes a compose override to `~/.local/state/nvim/odoo/docker-compose.debug.yml`
