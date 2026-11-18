@@ -27,6 +27,11 @@ Server:
   last                             output of the last update / install / test
   dbs                              databases of the postgres service
 
+Front-end files (no Docker needed; run it after you write JS, XML templates or SCSS):
+  frontend [<module>] [--json]     are the files under static/src loaded by a bundle of the manifest,
+                                   do the bundle entries exist, does every `static template` have its t-name
+                                   (default: every addon of your own folders)
+
 Setup and status:
   setup --workspace DIR [--compose-dir DIR] [--own DIR]... [--core DIR] [--python PATH]
         [--service NAME] [--db-service NAME] [--force] [--print]
@@ -341,6 +346,49 @@ function commands.brief(_, flags)
   if not flags.write then return say(table.concat(agent.brief(), "\n")) end
   local file, action = agent.write()
   say(("RESULT: ok brief %s in %s"):format(action, file))
+end
+
+function commands.frontend(args, flags)
+  require_settings()
+  local frontend = require("odoo.frontend")
+  local modules = frontend.own_modules()
+  local names = {}
+  if args[1] then
+    need(modules[args[1]], "no addon '" .. args[1] .. "' in your own folders (see: odoo-nvim info)")
+    names = { args[1] }
+  else
+    names = vim.tbl_keys(modules)
+    table.sort(names)
+  end
+  local problems, errors, warnings = {}, 0, 0
+  for _, name in ipairs(names) do
+    for _, problem in ipairs(frontend.check(modules[name])) do
+      problem.module = name
+      table.insert(problems, problem)
+      if problem.severity == "error" then
+        errors = errors + 1
+      else
+        warnings = warnings + 1
+      end
+    end
+  end
+  if flags.json then
+    say(vim.json.encode({ ok = errors == 0, errors = errors, warnings = warnings, problems = problems }))
+  else
+    for _, p in ipairs(problems) do
+      say(("%s:%d  %s: %s"):format(p.file, p.line, p.severity == "error" and "ERROR" or "warn", p.text))
+    end
+    local target = args[1] or (#names .. " addon(s)")
+    say(
+      ("RESULT: %s frontend %s (%d error(s), %d warning(s))"):format(
+        errors == 0 and "ok" or "failed",
+        target,
+        errors,
+        warnings
+      )
+    )
+  end
+  os.exit(errors == 0 and 0 or 1)
 end
 
 function commands.help() say(USAGE) end

@@ -193,6 +193,25 @@ function M.ai_init()
   vim.notify(("Agent brief %s in %s\n%s"):format(action, file, hint), vim.log.levels.INFO, { title = "Odoo" })
 end
 
+--- Check the front-end files of a module and list the problems in the quickfix window.
+---@param module string
+function M.frontend_check(module)
+  local frontend = require("odoo.frontend")
+  local dir = frontend.own_modules()[module]
+  if not dir then
+    return vim.notify(module .. " is not in your own folders", vim.log.levels.WARN, { title = "Odoo" })
+  end
+  local items = vim.tbl_map(
+    function(p) return { filename = p.file, lnum = p.line, text = p.text, type = p.severity == "error" and "E" or "W" } end,
+    frontend.check(dir)
+  )
+  vim.fn.setqflist({}, " ", { title = "Odoo frontend: " .. module, items = items })
+  if #items == 0 then
+    return vim.notify(module .. ": front-end files are consistent", vim.log.levels.INFO, { title = "Odoo" })
+  end
+  vim.cmd("copen")
+end
+
 --- Open lua/odoo/local.lua (your paths / docker names), created from the example the first time.
 function M.config()
   if not vim.uv.fs_stat(settings.local_file) then

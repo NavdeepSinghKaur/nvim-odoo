@@ -127,6 +127,7 @@ odoo-nvim update my_module            # -u, then restart the server
 odoo-nvim test my_module              # or: odoo-nvim test /my_module:TestSale.test_confirm
 odoo-nvim logs --tail 100
 odoo-nvim info                        # what is configured        odoo-nvim doctor   # is it healthy
+odoo-nvim frontend my_module          # JS / XML templates / SCSS loaded by a bundle? (no Docker)
 odoo-nvim help
 ```
 
