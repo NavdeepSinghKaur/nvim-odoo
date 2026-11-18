@@ -311,4 +311,4 @@ Debug mode writes a compose override to `~/.local/state/nvim/odoo/docker-compose
 | Something is broken | `:checkhealth` · `:messages` · notifications history `<Space>sn` |
 | Update fails "service not running" | start Odoo: `<Space>oS` (or F5 for debug mode) |
 | F-keys don't reach nvim | your terminal uses them (e.g. F11 fullscreen): disable that shortcut there, or use `<Space>d…` |
-| Icons look like squares | install a Nerd Font (e.g. `JetBrainsMono Nerd Font`) and select it in your terminal |
+| Icons look like squares or `?` | run `scripts/install-font.sh` (on WSL it installs the font on Windows), then select `JetBrainsMono Nerd Font Mono` in your terminal profile and reopen it |

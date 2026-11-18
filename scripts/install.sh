@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Sets up this Neovim config without questions, for people and for AI agents.
 #
-# Usage: scripts/install.sh [--yes] [--dry-run] [--skip-odoo-ls] [--skip-bootstrap]
+# Usage: scripts/install.sh [--yes] [--dry-run] [--skip-odoo-ls] [--skip-bootstrap] [--skip-font]
 #   --yes             do not ask before moving an existing config out of the way
 #   --dry-run         only report what is missing and what would be done
 #   --skip-odoo-ls    do not download the Odoo language server
 #   --skip-bootstrap  do not pre-install plugins, tools and parsers (nvim does it on first start)
+#   --skip-font       do not install the Nerd Font (on WSL it goes to Windows, see install-font.sh)
 #
 # What it does: checks the required programs, that tree-sitter, node and npm really run (a
 # Windows program on the WSL PATH is found but crashes) and that python3 can make a venv
@@ -19,13 +20,14 @@
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-yes=0 dry=0 odoo_ls=1 bootstrap=1
+yes=0 dry=0 odoo_ls=1 bootstrap=1 font=1
 for arg in "$@"; do
     case "$arg" in
         --yes | -y) yes=1 ;;
         --dry-run) dry=1 ;;
         --skip-odoo-ls) odoo_ls=0 ;;
         --skip-bootstrap) bootstrap=0 ;;
+        --skip-font) font=0 ;;
         -h | --help) awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"; exit 0 ;;
         *) echo "Unknown option: $arg (see --help)" >&2; exit 1 ;;
     esac
@@ -105,15 +107,6 @@ if [ "$clipboard" -eq 1 ]; then
     echo "  ok       clipboard"
 else
     echo "  optional clipboard: install wl-clipboard or xclip (yank/paste with the system clipboard)"
-fi
-# the terminal's font is what draws the icons; this only checks that a Nerd Font is installed
-if grep -qi microsoft /proc/version 2> /dev/null; then
-    echo "  note     Nerd Font: under WSL install it on Windows and select it in the terminal profile (see README, Requirements)"
-elif have fc-list; then
-    fonts="$(fc-list 2>/dev/null)" # a pipe into grep -q would fail under pipefail (SIGPIPE)
-    if ! grep -qi "nerd font" <<< "$fonts"; then
-        echo "  optional Nerd Font: not installed; icons show as '?' (see README, Requirements)"
-    fi
 fi
 
 if have nvim; then
@@ -204,6 +197,14 @@ if [ "$bootstrap" -eq 1 ]; then
     else
         nvim --headless "+luafile $repo/scripts/bootstrap.lua" || fail "bootstrap, see the STEP lines above"
     fi
+fi
+
+# ---------------------------------------------------------------- Nerd Font
+# Not required: a failure here only means icons show as '?', so it never fails the install.
+if [ "$font" -eq 1 ]; then
+    step "Nerd Font (draws the icons)"
+    if [ "$dry" -eq 1 ]; then "$repo/scripts/install-font.sh" --dry-run; else "$repo/scripts/install-font.sh"; fi ||
+        echo "  optional Nerd Font not installed; icons show as '?' (see README, Requirements)"
 fi
 
 # ---------------------------------------------------------------- odoo-nvim command

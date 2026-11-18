@@ -32,10 +32,12 @@ Everything is discoverable: press `Space` and a menu shows every shortcut; `Spac
 - `tree-sitter` CLI, Node.js and `npm` (parsers and language servers), `tar` and `gzip`
 - Python 3 with `python3 -m venv` (package `python3-venv` on Debian/Ubuntu; runs the odoo-ls proxy, Mason needs it)
 - A clipboard tool (`xclip` or `wl-clipboard`; WSL uses `clip.exe` / `win32yank.exe`)
-- A [Nerd Font](https://www.nerdfonts.com) selected in your terminal (for the icons), e.g.
-  JetBrainsMono Nerd Font. Without the release zip: `curl -fsSLO https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip`,
-  unzip it into `~/.local/share/fonts/` and run `fc-cache -f`
-- WSL: install the Nerd Font on Windows and select it in the terminal profile, and make sure
+- A [Nerd Font](https://www.nerdfonts.com) selected in your terminal (for the icons).
+  `scripts/install.sh` runs `scripts/install-font.sh`, which installs JetBrainsMono Nerd Font:
+  into `~/.local/share/fonts` on Linux, and for your Windows user (no admin) on WSL, because
+  the terminal only sees Windows fonts. Then select `JetBrainsMono Nerd Font Mono` in the
+  terminal profile. `--skip-font` skips it
+- WSL: make sure
   `tree-sitter`, `node` and `npm` are the Linux ones, not Windows programs under `/mnt/c`
 - Docker with the compose plugin, and `debugpy` installed in your Odoo image for debugging
 - Optional: [lazygit](https://github.com/jesseduffield/lazygit), the
