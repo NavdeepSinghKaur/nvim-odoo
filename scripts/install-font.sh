@@ -53,7 +53,10 @@ font_source() {
             return 0
         fi
     done
-    have curl && have unzip || { say "need curl and unzip to download the font" >&2; return 1; }
+    if ! have curl || ! have unzip; then
+        say "need curl and unzip to download the font" >&2
+        return 1
+    fi
     workdir="$(mktemp -d)" || return 1
     say "downloading $url" >&2
     curl -fsSL -o "$workdir/font.zip" "$url" || { say "download failed" >&2; return 1; }
