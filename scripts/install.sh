@@ -130,15 +130,15 @@ if [ "${#missing[@]}" -gt 0 ]; then
     list="${missing[*]}"
     # The printed commands must work when pasted. tree-sitter-cli is an npm package on
     # Debian/Ubuntu and Fedora, so there it gets its own line.
-    packages=() npm_tree_sitter=0
+    to_install=() npm_tree_sitter=0
     for package in "${missing[@]}"; do
         if [ "$package" = tree-sitter-cli ] && { have apt-get || have dnf; }; then
             npm_tree_sitter=1
         else
-            packages+=("$package")
+            to_install+=("$package")
         fi
     done
-    packages="${packages[*]}"
+    packages="${to_install[*]}"
     if have apt-get; then
         [ -z "$packages" ] || echo "  sudo apt-get install -y $packages"
         echo "  Debian/Ubuntu notes: the package for fd is 'fd-find'; npm comes with nodejs on most"
