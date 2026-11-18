@@ -13,6 +13,13 @@ if not vim.uv.fs_stat(lazypath) then
     vim.api.nvim_echo({ { "Failed to clone lazy.nvim:\n" .. out, "ErrorMsg" } }, true, {})
     return
   end
+  -- Pin the fresh clone to the commit of lazy-lock.json: `stable` is newer, and lazy would
+  -- then rewrite the lockfile (a dirty repo after every install).
+  local ok, lock = pcall(
+    function() return vim.json.decode(table.concat(vim.fn.readfile(vim.fn.stdpath("config") .. "/lazy-lock.json"))) end
+  )
+  local commit = ok and type(lock) == "table" and type(lock["lazy.nvim"]) == "table" and lock["lazy.nvim"].commit
+  if commit then vim.fn.system({ "git", "-C", lazypath, "checkout", "--quiet", commit }) end
 end
 vim.opt.rtp:prepend(lazypath)
 

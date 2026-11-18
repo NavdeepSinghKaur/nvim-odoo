@@ -39,6 +39,40 @@ T["debug override wraps the compose command in debugpy"] = function()
   )
 end
 
+T["debug override does not wrap a compose command that already runs debugpy"] = function()
+  local compose_command = {
+    "python3",
+    "-Xfrozen_modules=off",
+    "-m",
+    "debugpy",
+    "--listen",
+    "0.0.0.0:5678",
+    "/usr/bin/odoo",
+    "-c",
+    "/etc/odoo/odoo.conf",
+    "-d",
+    "mydb",
+    "-u",
+    "nog_stock",
+    "--dev=xml,css",
+  } -- stylua: ignore
+  local docker = docker_with(compose_command)
+  local lines = vim.fn.readfile(docker.debug_override_file())
+  eq(
+    lines[4],
+    '    command: ["python3","-Xfrozen_modules=off","-m","debugpy","--listen","0.0.0.0:5678","/usr/bin/odoo",'
+      .. '"-c","/etc/odoo/odoo.conf","-d","mydb","-u","nog_stock","--dev=xml,css","--dev=xml"]'
+  )
+end
+
+T["debug override finds an odoo-bin launched by python"] = function()
+  local docker = docker_with({ "python3", "/opt/odoo/odoo-bin", "-d", "x" }, { odoo_bin = "/opt/odoo/odoo-bin" })
+  eq(
+    vim.fn.readfile(docker.debug_override_file())[4],
+    '    command: ["python3","-m","debugpy","--listen","0.0.0.0:5678","/opt/odoo/odoo-bin","-d","x","--dev=xml"]'
+  )
+end
+
 T["one-off commands run next to the live server on other ports"] = function()
   local compose = docker_with({ "odoo", "-d", "mydb" })
   local prefix = { "docker", "compose", "exec", "-T", "odoo", "odoo", "-c", "/etc/odoo/odoo.conf", "-d", "mydb" }

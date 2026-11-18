@@ -43,10 +43,10 @@ function M.checks()
   -- programs
   local version = vim.version()
   local version_text = ("%d.%d.%d"):format(version.major, version.minor, version.patch)
-  if vim.fn.has("nvim-0.11") == 1 then
+  if vim.fn.has("nvim-0.12") == 1 then
     add("neovim", "ok", version_text)
   else
-    add("neovim", "error", version_text, "Neovim 0.11 or newer is needed")
+    add("neovim", "error", version_text, "Neovim 0.12 or newer is needed")
   end
   local required = {
     { "git" },
@@ -54,20 +54,55 @@ function M.checks()
     { "fd", "fdfind", hint = "install fd (file pickers)" },
     { "tree-sitter", hint = "install the tree-sitter CLI (parsers are compiled with it)" },
     { "node", hint = "install Node.js (some language servers)" },
+    { "npm", hint = "install npm (Mason installs several language servers with it)" },
     { "python3", hint = "install Python 3 (runs the odoo-ls proxy)" },
     { "cc", "gcc", "clang", hint = "install a C compiler (Treesitter parsers)" },
     { "curl" },
     { "unzip" },
+    { "tar" },
+    { "gzip" },
   }
+  -- Under WSL the Windows shims on the PATH (/mnt/c/...) are found but crash when run.
+  local must_run = { ["tree-sitter"] = true, node = true, npm = true }
   for _, program in ipairs(required) do
     local found = vim.tbl_filter(has, program)[1]
-    if found then
-      add(program[1], "ok", vim.fn.exepath(found))
+    local path = found and vim.fn.exepath(found)
+    if found and must_run[found] and (not first_line({ found, "--version" }) or vim.startswith(path, "/mnt/")) then
+      local windows = vim.startswith(path, "/mnt/")
+      local hint = windows and "a Windows program on the WSL PATH? install the Linux one" or "reinstall it"
+      add(program[1], "error", "found at " .. path .. " but it does not run", hint)
+    elseif found then
+      add(program[1], "ok", path)
     else
       add(program[1], "error", "not found", program.hint or ("install " .. program[1]))
     end
   end
-  local optional = { { "lazygit", "git UI on <Space>gg" }, { "claude", "Claude Code panel on <Space>a" } }
+  if first_line({ "python3", "-m", "venv", "--help" }) then
+    add("python3 venv", "ok", "python3 -m venv works")
+  else
+    add(
+      "python3 venv",
+      "error",
+      "python3 -m venv does not work",
+      "install python3-venv (Mason needs it for black and debugpy)"
+    )
+  end
+  local clipboard = vim.tbl_filter(has, { "wl-copy", "xclip", "xsel", "pbcopy", "win32yank.exe", "clip.exe" })[1]
+  if clipboard then
+    add("clipboard", "ok", clipboard)
+  else
+    add(
+      "clipboard",
+      "warn",
+      "no clipboard tool found",
+      "install wl-clipboard or xclip (yank/paste with the system clipboard)"
+    )
+  end
+  local optional = {
+    { "make", "only for `make check`" },
+    { "lazygit", "git UI on <Space>gg" },
+    { "claude", "Claude Code panel on <Space>a" },
+  }
   for _, program in ipairs(optional) do
     local name, purpose = program[1], program[2]
     if has(name) then

@@ -7,10 +7,12 @@
 #   --skip-odoo-ls    do not download the Odoo language server
 #   --skip-bootstrap  do not pre-install plugins, tools and parsers (nvim does it on first start)
 #
-# What it does: checks the required programs (and prints the command to install the missing
-# ones: it never runs sudo itself), links this folder as the Neovim config, installs odoo-ls
-# into ~/.local, pre-installs plugins / Mason tools / Treesitter parsers, and links the
-# `odoo-nvim` command into ~/.local/bin.
+# What it does: checks the required programs, that tree-sitter, node and npm really run (a
+# Windows program on the WSL PATH is found but crashes) and that python3 can make a venv
+# (Mason needs it). It prints the commands to install what is missing and never runs sudo
+# itself. Then it links this folder as the Neovim config, installs odoo-ls into ~/.local,
+# pre-installs plugins / Mason tools / Treesitter parsers, and links the `odoo-nvim` command
+# into ~/.local/bin.
 #
 # The last line is "RESULT: ok" or "RESULT: failed (<reason>)"; the exit code is 0 or 1.
 # Honours XDG_CONFIG_HOME and NVIM_APPNAME.
@@ -24,7 +26,7 @@ for arg in "$@"; do
         --dry-run) dry=1 ;;
         --skip-odoo-ls) odoo_ls=0 ;;
         --skip-bootstrap) bootstrap=0 ;;
-        -h | --help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h | --help) awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"; exit 0 ;;
         *) echo "Unknown option: $arg (see --help)" >&2; exit 1 ;;
     esac
 done
@@ -38,6 +40,7 @@ step() { printf '\n== %s\n' "$1"; }
 # ---------------------------------------------------------------- required programs
 step "Checking required programs"
 missing=()
+too_old=0 # nvim is installed but older than needed: the package manager may not have a newer one
 have() { command -v "$1" > /dev/null 2>&1; }
 need() { # need <package name> <command> [alternative command...]
     local package="$1"
@@ -51,6 +54,24 @@ need() { # need <package name> <command> [alternative command...]
     printf '  MISSING  %s\n' "$1"
     missing+=("$package")
 }
+# need_working: like need, and the program must also run. Under WSL `command -v` finds Windows
+# npm shims (/mnt/c/...) that crash when run, so the parser or Mason step fails much later.
+need_working() { # need_working <package name> <command>
+    local path
+    path="$(command -v "$2" 2> /dev/null)"
+    if [ -z "$path" ]; then
+        need "$1" "$2"
+        return
+    fi
+    if ! "$2" --version > /dev/null 2>&1 || [[ "$path" == /mnt/* ]]; then
+        printf '  BROKEN   %s: %s does not run' "$2" "$path"
+        [[ "$path" == /mnt/* ]] && printf ' (a Windows program on the WSL PATH: install the Linux one)'
+        printf '\n'
+        missing+=("$1")
+        return
+    fi
+    printf '  ok       %s\n' "$2"
+}
 optional() { # optional <command> <what it is for>
     if have "$1"; then printf '  ok       %s\n' "$1"; else printf '  optional %s: %s\n' "$1" "$2"; fi
 }
@@ -62,17 +83,44 @@ need unzip unzip
 need gcc cc gcc clang
 need ripgrep rg
 need fd fd fdfind
-need tree-sitter-cli tree-sitter
-need nodejs node
+need_working tree-sitter-cli tree-sitter
+need_working nodejs node
+need_working npm npm
+need tar tar
+need gzip gzip
 need python3 python3
+if python3 -m venv --help > /dev/null 2>&1; then
+    echo "  ok       python3 -m venv"
+else
+    echo "  MISSING  python3 -m venv"
+    missing+=("python3-venv")
+fi
 optional docker "the Odoo commands (update, test, logs, debug) need Docker with the compose plugin"
 optional lazygit "git UI on <Space>gg"
 optional claude "Claude Code panel on <Space>a"
+optional make "only for \`make check\` when you change this config"
+clipboard=0
+for tool in wl-copy xclip xsel pbcopy win32yank.exe clip.exe; do have "$tool" && clipboard=1; done
+if [ "$clipboard" -eq 1 ]; then
+    echo "  ok       clipboard"
+else
+    echo "  optional clipboard: install wl-clipboard or xclip (yank/paste with the system clipboard)"
+fi
+# the terminal's font is what draws the icons; this only checks that a Nerd Font is installed
+if grep -qi microsoft /proc/version 2> /dev/null; then
+    echo "  note     Nerd Font: under WSL install it on Windows and select it in the terminal profile (see README, Requirements)"
+elif have fc-list; then
+    fonts="$(fc-list 2>/dev/null)" # a pipe into grep -q would fail under pipefail (SIGPIPE)
+    if ! grep -qi "nerd font" <<< "$fonts"; then
+        echo "  optional Nerd Font: not installed; icons show as '?' (see README, Requirements)"
+    fi
+fi
 
 if have nvim; then
-    if ! nvim --headless -u NONE -i NONE "+lua if vim.fn.has('nvim-0.11') == 0 then vim.cmd('cquit 1') end" +qa > /dev/null 2>&1; then
-        printf '  TOO OLD  nvim: 0.11 or newer is needed (%s)\n' "$(nvim --version | head -1)"
-        missing+=("neovim>=0.11")
+    if ! nvim --headless -u NONE -i NONE "+lua if vim.fn.has('nvim-0.12') == 0 then vim.cmd('cquit 1') end" +qa > /dev/null 2>&1; then
+        printf '  TOO OLD  nvim: 0.12 or newer is needed (%s)\n' "$(nvim --version | head -1)"
+        missing+=("neovim")
+        too_old=1
     fi
 fi
 
@@ -80,21 +128,35 @@ if [ "${#missing[@]}" -gt 0 ]; then
     echo
     echo "Install the missing programs, then run this script again. For example:"
     list="${missing[*]}"
-    # the names above are the common package names; two differ on some systems
+    # The printed commands must work when pasted. tree-sitter-cli is an npm package on
+    # Debian/Ubuntu and Fedora, so there it gets its own line.
+    to_install=() npm_tree_sitter=0
+    for package in "${missing[@]}"; do
+        if [ "$package" = tree-sitter-cli ] && { have apt-get || have dnf; }; then
+            npm_tree_sitter=1
+        else
+            to_install+=("$package")
+        fi
+    done
+    packages="${to_install[*]}"
     if have apt-get; then
-        echo "  sudo apt-get install -y $list"
-        echo "  Debian/Ubuntu notes: the package for fd is 'fd-find'; tree-sitter-cli comes from"
-        echo "  'npm install -g tree-sitter-cli'; if the packaged neovim is older than 0.11, take the"
-        echo "  release from https://github.com/neovim/neovim/releases"
+        [ -z "$packages" ] || echo "  sudo apt-get install -y $packages"
+        echo "  Debian/Ubuntu notes: the package for fd is 'fd-find'; npm comes with nodejs on most"
+        echo "  systems (package 'npm' on Debian/Ubuntu); 'python3 -m venv' is the package python3-venv."
     elif have dnf; then
-        echo "  sudo dnf install -y $list"
+        [ -z "$packages" ] || echo "  sudo dnf install -y $packages"
         echo "  Fedora note: the package for fd is 'fd-find'."
     elif have pacman; then
-        echo "  sudo pacman -S --needed $list"
+        echo "  sudo pacman -S --needed $packages"
     elif have brew; then
-        echo "  brew install $list"
+        echo "  brew install $packages"
     else
-        echo "  $list"
+        echo "  $packages"
+    fi
+    [ "$npm_tree_sitter" -eq 0 ] || echo "  npm install -g tree-sitter-cli     (with the Linux npm)"
+    if [ "$too_old" -eq 1 ]; then
+        echo "  Neovim 0.12 or newer: if your package manager has an older one, take the release"
+        echo "  from https://github.com/neovim/neovim/releases"
     fi
     [ "$dry" -eq 1 ] || fail "missing programs: $list"
 fi

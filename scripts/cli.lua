@@ -30,7 +30,8 @@ Server:
 Setup and status:
   setup --workspace DIR [--compose-dir DIR] [--own DIR]... [--core DIR] [--python PATH]
         [--service NAME] [--db-service NAME] [--force] [--print]
-                                   write lua/odoo/local.lua from what the project says
+                                   write lua/odoo/local.lua from what the project says (also the Odoo binary,
+                                   debug port, web port and a .venv python)
                                    (--print: show it, write nothing; --force: replace it)
   brief [--write]                  the instructions for AI agents working in the addons repo
                                    (--write: put them into its AGENTS.md / CLAUDE.md)
