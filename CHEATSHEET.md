@@ -303,6 +303,7 @@ Debug mode writes a compose override to `~/.local/state/nvim/odoo/docker-compose
 | `gd` / hover do nothing right after opening | odoo_ls indexes for ~15 s at startup (progress in the status bar) |
 | odoo_ls doesn't see a new module / branch switch | it restarts by itself when the git commit changes; else `:OdooLs restart` |
 | Odoo commands use the wrong folder / container | `:Odoo config`, then restart nvim; `<Space>o?` shows what is used |
+| Are my JS / XML templates / SCSS loaded by a bundle? | `:Odoo frontend` (quickfix), or `odoo-nvim frontend [module]` in a terminal |
 | Is everything installed and configured? | `:Odoo health` (= `:checkhealth odoo`), or `odoo-nvim doctor` in a terminal |
 | A warning about `local.lua` at startup | it lists every unknown key, wrong type and missing folder: fix them in `:Odoo config` |
 | Anything odoo_ls | `:OdooLs health` · `:OdooLs logs` |

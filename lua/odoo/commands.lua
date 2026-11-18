@@ -221,6 +221,11 @@ M.list = {
     run = function() vim.cmd("checkhealth odoo") end,
   },
   {
+    name = "frontend",
+    desc = "Check the JS / XML templates / SCSS of the module: are they loaded by a bundle?",
+    run = on_module(function(module) odoo().frontend_check(module) end),
+  },
+  {
     name = "ai-init",
     desc = "Write the brief for AI agents (odoo-nvim commands, your folders) into the workspace",
     run = function() odoo().ai_init() end,
