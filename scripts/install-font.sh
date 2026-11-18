@@ -36,8 +36,10 @@ is_wsl() {
     grep -qi microsoft /proc/version 2> /dev/null
 }
 
-# Where the four .ttf files come from: a folder to use as is, or "" when nothing is available.
-workdir=""
+# Sets $source to the folder with the four .ttf files, downloading them when needed. It sets a
+# variable instead of printing the path: inside $(...) the download folder would be made in a
+# subshell, out of reach of the EXIT trap, and left behind.
+workdir="" source=""
 cleanup() { [ -z "$workdir" ] || rm -rf "$workdir"; }
 trap cleanup EXIT
 font_source() {
@@ -47,7 +49,7 @@ font_source() {
         candidate=1
         for style in "${styles[@]}"; do [ -f "$dir/JetBrainsMonoNerdFontMono-$style.ttf" ] || candidate=0; done
         if [ "$candidate" -eq 1 ]; then
-            printf '%s' "$dir"
+            source="$dir"
             return 0
         fi
     done
@@ -56,7 +58,7 @@ font_source() {
     say "downloading $url" >&2
     curl -fsSL -o "$workdir/font.zip" "$url" || { say "download failed" >&2; return 1; }
     unzip -qo "$workdir/font.zip" -d "$workdir/ttf" || { say "could not unzip the font" >&2; return 1; }
-    printf '%s' "$workdir/ttf"
+    source="$workdir/ttf"
 }
 
 install_linux() {
@@ -72,8 +74,7 @@ install_linux() {
         say "would install $family into $dest"
         return 0
     fi
-    local source
-    source="$(font_source)" || return 1
+    font_source || return 1
     mkdir -p "$dest" || return 1
     for style in "${styles[@]}"; do cp "$source/JetBrainsMonoNerdFontMono-$style.ttf" "$dest/" || return 1; done
     if have fc-cache; then fc-cache -f "$dest" > /dev/null 2>&1; fi
@@ -101,8 +102,7 @@ install_windows() {
         say "would install $family for the current Windows user ($local_app\\Microsoft\\Windows\\Fonts)"
         return 0
     fi
-    local source
-    source="$(font_source)" || return 1
+    font_source || return 1
     mkdir -p "$dest" || return 1
     for style in "${styles[@]}"; do
         local file="JetBrainsMonoNerdFontMono-$style.ttf" label="$style"

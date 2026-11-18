@@ -88,4 +88,34 @@ T["Linux: copies the font into ~/.local/share/fonts and never calls Windows tool
   eq(vim.uv.fs_stat(root .. "/reg.log"), nil)
 end
 
+T["download: installs the font and removes the download folder"] = function()
+  local root, bin = machine()
+  -- fake curl writes the zip; fake unzip unpacks the four styles into the -d folder
+  H.write(bin .. "/curl", {
+    "#!/usr/bin/env bash",
+    'while [ $# -gt 0 ]; do [ "$1" = -o ] && echo zip > "$2"; shift; done',
+  })
+  H.write(bin .. "/unzip", {
+    "#!/usr/bin/env bash",
+    'd=""; while [ $# -gt 0 ]; do [ "$1" = -d ] && d="$2"; shift; done',
+    'mkdir -p "$d"; for s in '
+      .. table.concat(STYLES, " ")
+      .. '; do echo f > "$d/JetBrainsMonoNerdFontMono-$s.ttf"; done',
+  })
+  H.write(bin .. "/fc-list", { "#!/usr/bin/env bash", "exit 0" }) -- no Nerd Font on this machine
+  for _, name in ipairs({ "curl", "unzip", "fc-list" }) do
+    vim.fn.setfperm(bin .. "/" .. name, "rwxr-xr-x")
+  end
+  vim.fn.mkdir(root .. "/tmp", "p")
+  local env =
+    { HOME = root .. "/home", PATH = bin .. ":" .. vim.env.PATH, TMPDIR = root .. "/tmp", ODOO_NVIM_FORCE_WSL = "0" }
+  local result = vim.system({ "scripts/install-font.sh" }, { text = true, env = env }):wait()
+  eq(result.code, 0)
+  eq(
+    vim.uv.fs_stat(root .. "/home/.local/share/fonts/JetBrainsMonoNerd/JetBrainsMonoNerdFontMono-BoldItalic.ttf") ~= nil,
+    true
+  )
+  eq(vim.fn.readdir(root .. "/tmp"), {})
+end
+
 return T
