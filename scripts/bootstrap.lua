@@ -40,7 +40,11 @@ run("mason tools", function()
 end)
 
 run("treesitter parsers", function()
-  if vim.fn.executable("tree-sitter") == 0 then return "the tree-sitter CLI is not on PATH" end
+  -- the tree-sitter CLI is a Mason package; loading Mason puts its bin folder on PATH
+  require("lazy").load({ plugins = { "mason.nvim" } })
+  if vim.fn.executable("tree-sitter") == 0 then
+    return "the tree-sitter CLI is missing: Mason did not install `tree-sitter-cli`"
+  end
   local treesitter = require("nvim-treesitter")
   treesitter.install(tools.parsers):wait(10 * MINUTE)
   local installed = treesitter.get_installed()

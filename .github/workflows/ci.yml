@@ -53,7 +53,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ripgrep fd-find unzip
-          npm install -g tree-sitter-cli
       - name: Cache plugins, tools and parsers
         uses: actions/cache@v4
         with:
@@ -63,6 +62,11 @@ jobs:
         run: |
           scripts/install.sh --yes | tee install.log
           tail -n 1 install.log | grep -qx 'RESULT: ok'
+      - name: No npm packages were installed
+        run: |
+          receipts=(~/.local/share/nvim/mason/packages/*/mason-receipt.json)
+          [ -e "${receipts[0]}" ] || { echo "no Mason receipts found: the install did not run"; exit 1; }
+          if grep -l '"pkg:npm' "${receipts[@]}"; then echo "npm-sourced Mason packages found"; exit 1; fi
       - name: Neovim starts without errors
         run: |
           nvim --headless "+lua if vim.v.errmsg ~= '' then io.stderr:write(vim.v.errmsg, '\n') vim.cmd('cquit 1') end" +qa

@@ -29,7 +29,7 @@ Everything is discoverable: press `Space` and a menu shows every shortcut; `Spac
 
 - Neovim **0.12+**, git, a C compiler, `curl`, `unzip`, `make` (only for `make check`)
 - [ripgrep](https://github.com/BurntSushi/ripgrep) and [fd](https://github.com/sharkdp/fd)
-- `tree-sitter` CLI, Node.js and `npm` (parsers and language servers), `tar` and `gzip`
+- `tar` and `gzip`. The tree-sitter CLI is installed by Mason on first start (no Node.js or npm needed)
 - Python 3 with `python3 -m venv` (package `python3-venv` on Debian/Ubuntu; runs the odoo-ls proxy, Mason needs it)
 - A clipboard tool (`xclip` or `wl-clipboard`; WSL uses `clip.exe` / `win32yank.exe`)
 - A [Nerd Font](https://www.nerdfonts.com) selected in your terminal (for the icons).
@@ -37,8 +37,6 @@ Everything is discoverable: press `Space` and a menu shows every shortcut; `Spac
   into `~/.local/share/fonts` on Linux, and for your Windows user (no admin) on WSL, because
   the terminal only sees Windows fonts. Then select `JetBrainsMono Nerd Font Mono` in the
   terminal profile. `--skip-font` skips it
-- WSL: make sure
-  `tree-sitter`, `node` and `npm` are the Linux ones, not Windows programs under `/mnt/c`
 - Docker with the compose plugin, and `debugpy` installed in your Odoo image for debugging
 - Optional: [lazygit](https://github.com/jesseduffield/lazygit), the
   [`claude` CLI](https://docs.anthropic.com/en/docs/claude-code)

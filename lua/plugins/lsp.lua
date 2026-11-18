@@ -5,7 +5,9 @@
 --  basedpyright Python outside Odoo addons (odoo_ls covers Odoo code; both at once = duplicates)
 --  ruff         fast linter (same rules as the repo's flake8: line 100, bugbear)
 --  lemminx      XML (tags, attributes, closing tags)
---  lua_ls, jsonls, yamlls, cssls, ts_ls
+--  lua_ls       Lua (this config)
+--  JSON, YAML, CSS and TypeScript have Treesitter highlighting only, no language server: their
+--               servers need Node.js, which this config does not use
 --
 --  :checkhealth vim.lsp   which servers are attached and why
 --  :OdooLs health         odoo_ls status (profile, paths, errors)   :OdooLs restart after git pull
@@ -160,17 +162,11 @@ return {
         },
       })
 
-      -- ---------------------------------------------------------- JS (outside Odoo; odoo_ls does Odoo JS)
-      vim.lsp.config(
-        "ts_ls",
-        { root_dir = not_odoo_root({ "package.json", "tsconfig.json", "jsconfig.json", ".git" }) }
-      )
-
       vim.lsp.config("lua_ls", {
         settings = { Lua = { workspace = { checkThirdParty = false }, completion = { callSnippet = "Replace" } } },
       })
 
-      vim.lsp.enable({ "basedpyright", "ruff", "lemminx", "lua_ls", "jsonls", "yamlls", "cssls", "ts_ls" })
+      vim.lsp.enable({ "basedpyright", "ruff", "lemminx", "lua_ls" })
 
       -- ---------------------------------------------------------- keys when a server is attached
       vim.api.nvim_create_autocmd("LspAttach", {

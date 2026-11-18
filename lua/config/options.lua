@@ -63,6 +63,3 @@ vim.filetype.add({
   extension = { po = "po", pot = "po" },
   filename = { ["odools.toml"] = "toml" },
 })
-
--- Python used by plugins that need one (debugger adapter etc.). Odoo deps live in this venv.
-vim.g.python3_host_prog = require("odoo.settings").python
