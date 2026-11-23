@@ -27,6 +27,15 @@ T["shows the command, its output and the exit code"] = function()
   eq(vim.list_slice(panel, 3), { "one", "two", "last without newline", "", "[exit code 3]" })
 end
 
+T["accepts a command whose argument has several lines (sync-core passes a script)"] = function()
+  local code, lines, panel = run("echo a\necho b")
+  eq(code, 0)
+  eq(lines, { "a", "b" })
+  eq(panel[1], "$ sh -c echo a")
+  eq(panel[2], "echo b")
+  eq(vim.list_slice(panel, 4), { "a", "b", "", "[exit code 0]" })
+end
+
 T["keeps only the last lines of output that never ends"] = function()
   local code, lines, panel = run("seq 1 5000", { max_lines = 100 })
   eq(code, 0)

@@ -134,7 +134,10 @@ function M.run(opts)
   if M.jobs[title] then M.stop(title) end
   local buf = get_buf(title)
   vim.bo[buf].modifiable = true
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "$ " .. table.concat(opts.cmd, " "), "" })
+  -- A command can carry a multi-line script (sync-core does): nvim_buf_set_lines takes one line per item
+  local header = vim.split("$ " .. table.concat(opts.cmd, " "), "\n", { plain = true })
+  table.insert(header, "")
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, header)
   vim.bo[buf].modifiable = false
   local win = show(buf)
   local all, partial, pending, flush_planned = {}, "", {}, false
